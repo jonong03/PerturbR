@@ -3,8 +3,8 @@
     "objectID": "index.html#constructing-the-full-space",
     "href": "index.html#constructing-the-full-space",
     "title": "3D Correlation Space",
-    "section": "Constructing the full space",
-    "text": "Constructing the full space\nApproaches:\n\nConstruct x, y, z \\(\\in\\) [-1,1]. Check which combination is positive semi-definite using determinants. Plot results\nLeverage LKJ distribution, sample N samples and plot.\nThe LKJ distribution provides"
+    "section": "",
+    "text": "Approaches:\n\nConstruct x, y, z \\(\\in\\) [-1,1]. Check which combination is positive semi-definite using determinants. Plot results\nLeverage LKJ distribution, sample N samples and plot.\nThe LKJ distribution provides"
   },
   {
     "objectID": "index.html#varepsilon-ball-around-r_pop",
@@ -19,5 +19,12 @@
     "title": "id",
     "section": "",
     "text": "123"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "3D Correlation Space",
+    "section": "",
+    "text": "Want to construct an approach that allow us to claim “we are 95% confident that this confidence region covers the true set”.\n\n\n\n\nApproaches:\n\nConstruct x, y, z \\(\\in\\) [-1,1]. Check which combination is positive semi-definite using determinants. Plot results\nLeverage LKJ distribution, sample N samples and plot.\nThe LKJ distribution provides"
   }
 ]

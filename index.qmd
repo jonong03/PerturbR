@@ -7,13 +7,15 @@ execute:
   warning: false
 ---
 
-## Illustrating 3d-correlation space
-
 ```{r}
 #| echo: false
 #devtools::install_github("rmcelreath/rethinking@slim")
 pacman::p_load(data.table, dplyr, plotly, rethinking)
 ```
+
+# Goal:
+
+1.  Want to construct an approach that allow us to claim "we are 95% confident that this confidence region covers the true set".\
 
 ## Constructing the full space
 
