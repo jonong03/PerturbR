@@ -1,0 +1,237 @@
+---
+title: "3D Correlation Space"
+format: html
+editor: visual
+execute:
+  echo: false
+  warning: false
+---
+
+## Illustrating 3d-correlation space
+
+```{r}
+#| echo: false
+#devtools::install_github("rmcelreath/rethinking@slim")
+pacman::p_load(data.table, dplyr, plotly, rethinking)
+```
+
+## Constructing the full space
+
+Approaches:
+
+1.  Construct x, y, z $\in$ \[-1,1\]. Check which combination is positive semi-definite using determinants. Plot results
+
+2.  Leverage LKJ distribution, sample N samples and plot.
+
+    The LKJ distribution provides
+
+```{r}
+#| echo: false
+x<- y<- z<- seq(-1,1, length= 30)   #r12, r13, r23
+dt<- expand.grid(x=x,y=y,z=z) %>% as.data.table
+dt[,psd:= 1-x^2 -y^2-z^2- 2*x*y*z]
+dt<- dt[psd>0,]
+p0<- plot_ly(data= dt, x = ~x, y = ~y, z = ~z, type = "scatter3d",
+  mode = "markers",
+  marker = list(size = 2)) %>% layout(
+  title = list(
+    text = "Approach 1: Valid 3-d correlation matrices by PSD",
+    x = 0.5,       # 0 = left, 0.5 = center, 1 = right
+    xanchor = "center",
+    yanchor = "top",
+    font = list(size = 20, color = "black")
+  ),
+  scene = list(
+    xaxis = list(title = "r12"),
+    yaxis = list(title = "r13"),
+    zaxis = list(title = "r23")
+  )
+)
+p0
+```
+
+```{r}
+#| echo: false
+N <- 3000
+samp1 <- rlkjcorr(N, K = 3, eta = 0.1) #eta parameter represents density of sampling
+samp2<- rlkjcorr(N, K = 3, eta = 1)
+samp3 <- rlkjcorr(N, K = 3, eta = 10)
+
+df1 <- data.frame(x=samp1[, 2, 1], y=samp1[, 3, 1], z=samp1[, 3, 2])
+df2 <- data.frame(x=samp2[, 2, 1], y=samp2[, 3, 1], z=samp2[, 3, 2])
+df3 <- data.frame(x=samp3[, 2, 1], y=samp3[, 3, 1], z=samp3[, 3, 2])
+
+p1<- plot_ly(df1,  x = ~x, y = ~y, z = ~z, type = "scatter3d", 
+  mode = "markers",   marker = list(size = 3), name="eta=0.1 (sample towards edges") %>%
+  layout(title = "Approach 2: LKJ-distribution")
+p2<- plot_ly(df2,  x = ~x, y = ~y, z = ~z, type = "scatter3d",color = I("lightblue"),
+  mode = "markers",   marker = list(size = 3), name="eta=1 (uniform distribution)") 
+p3<- plot_ly(df3,  x = ~x, y = ~y, z = ~z, type = "scatter3d",
+  mode = "markers",   marker = list(size = 3), name="eta=10 (sample towards I") 
+subplot(p1, p2, p3, nrows = 1, margin=0.05)
+
+```
+
+## $\varepsilon$-ball around $R_{pop}$
+
+```{r}
+# Generate N samples around Rpop with a given noise-level
+r.eps<- function(Rpop, N=1, noise= 0.1, pd=FALSE){
+  p= ncol(Rpop)
+  lapply(1:N, function(i){
+    rE<- rnorm(p*(p-1)/2,0,1) # sampling eps ball with radius 1
+    rE<- rE/ sqrt(sum(rE^2)) #normalization
+    rE<- rE* noise
+    E<- diag(0,p,p)
+    
+    E[upper.tri(E)]<- rE
+    E <- (E + t(E))
+    Ri<- Rpop+E
+    
+    if(pd==TRUE) Ri<- Matrix::nearPD(Ri, corr=TRUE)$mat
+    return(Ri)
+  })
+}
+
+
+# Flatten correlation matrix for plotting purpose
+R_to_coords <- function(R) {
+  data.frame(
+    r12 = R[1,2],
+    r13 = R[1,3],
+    r23 = R[2,3]
+  )
+}
+
+```
+
+```{r plotRi}
+Rpop<- rlkjcorr(1, K = 3, eta = 30)
+R1<- r.eps(Rpop, N=200, noise= 0.1)
+R2<- r.eps(Rpop, N=200, noise= 0.3)
+R3<- r.eps(Rpop, N=200, noise= 0.5)
+R3a<- r.eps(Rpop, N=200, noise= 0.5, pd = TRUE)
+
+df_Rpop <- R_to_coords(Rpop)
+df_R1 <- do.call(rbind, lapply(R1, R_to_coords))
+df_R2 <- do.call(rbind, lapply(R2, R_to_coords))
+df_R3 <- do.call(rbind, lapply(R3, R_to_coords))
+df_R3a <- do.call(rbind, lapply(R3a, R_to_coords))
+
+p20 <- p2 %>%
+  # Add Rpop as a red marker
+  add_trace(
+    data = df_Rpop,
+    x = ~r12, y = ~r13, z = ~r23,
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 6, color = "red"),
+    name = "Rpop"
+  ) %>%
+  # Add Ri matrices as blue markers
+  add_trace(
+    data = df_R1,
+    x = ~r12, y = ~r13, z = ~r23,
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3, color = "orange"),
+    name = "noise=0.1"
+  ) %>%
+  add_trace(
+    data = df_R2,
+    x = ~r12, y = ~r13, z = ~r23,
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3, color = "green"),
+    name = "noise=0.3"
+  ) %>%
+  add_trace(
+    data = df_R3,
+    x = ~r12, y = ~r13, z = ~r23,
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3, color = "pink"),
+    name = "noise=0.5"
+  ) %>%
+  add_trace(
+    data = df_R3a,
+    x = ~r12, y = ~r13, z = ~r23,
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3, color = "purple"),
+    name = "noise=0.5 + nearest pos-definite"
+  ) %>%
+  layout(
+    legend = list(itemsizing = "constant"),
+    title = list(
+    text = "When Rpop is close to I",
+    x = 0.5,       # 0 = left, 0.5 = center, 1 = right
+    xanchor = "center",
+    yanchor = "top",
+    font = list(size = 20, color = "black")
+  
+  )
+  )
+p20
+```
+
+```{r}
+N=500
+Rpop<- rlkjcorr(1, K = 3, eta = 0.1)
+R1<- r.eps(Rpop, N, noise= 0.1)
+R2<- r.eps(Rpop, N, noise= 0.3)
+R3<- r.eps(Rpop, N, noise= 0.5)
+
+df_Rpop <- R_to_coords(Rpop)
+df_R1 <- do.call(rbind, lapply(R1, R_to_coords))
+df_R2 <- do.call(rbind, lapply(R2, R_to_coords))
+df_R3 <- do.call(rbind, lapply(R3, R_to_coords))
+
+p20 <- p2 %>%
+  # Add Rpop as a red marker
+  add_trace(
+    data = df_Rpop,
+    x = ~r12, y = ~r13, z = ~r23,
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 6, color = "red"),
+    name = "Rpop"
+  ) %>%
+  # Add Ri matrices as blue markers
+  add_trace(
+    data = df_R1,
+    x = ~r12, y = ~r13, z = ~r23,
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3, color = "orange"),
+    name = "noise=0.1"
+  ) %>%
+  add_trace(
+    data = df_R2,
+    x = ~r12, y = ~r13, z = ~r23,
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3, color = "green"),
+    name = "noise=0.3"
+  ) %>%
+  add_trace(
+    data = df_R3,
+    x = ~r12, y = ~r13, z = ~r23,
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 3, color = "pink"),
+    name = "noise=0.5"
+  ) %>%
+  layout(
+    legend = list(itemsizing = "constant"),
+    title = list(
+    text = "When Rpop is close to boundary",
+    x = 0.5,       # 0 = left, 0.5 = center, 1 = right
+    xanchor = "center",
+    yanchor = "top",
+    font = list(size = 20, color = "black")
+  
+  )
+  )
+p20
+```
