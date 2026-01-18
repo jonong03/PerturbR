@@ -1,0 +1,11 @@
+project:
+  type: website
+  output-dir: docs
+
+website:
+  title: "Living Notebook"
+  navbar: false
+
+format:
+  html:
+    toc: true

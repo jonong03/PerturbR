@@ -1,0 +1,23 @@
+[
+  {
+    "objectID": "index.html#constructing-the-full-space",
+    "href": "index.html#constructing-the-full-space",
+    "title": "3D Correlation Space",
+    "section": "Constructing the full space",
+    "text": "Constructing the full space\nApproaches:\n\nConstruct x, y, z \\(\\in\\) [-1,1]. Check which combination is positive semi-definite using determinants. Plot results\nLeverage LKJ distribution, sample N samples and plot.\nThe LKJ distribution provides"
+  },
+  {
+    "objectID": "index.html#varepsilon-ball-around-r_pop",
+    "href": "index.html#varepsilon-ball-around-r_pop",
+    "title": "3D Correlation Space",
+    "section": "\\(\\varepsilon\\)-ball around \\(R_{pop}\\)",
+    "text": "\\(\\varepsilon\\)-ball around \\(R_{pop}\\)"
+  },
+  {
+    "objectID": "meeting notes.html",
+    "href": "meeting notes.html",
+    "title": "id",
+    "section": "",
+    "text": "123"
+  }
+]
