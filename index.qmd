@@ -13,11 +13,25 @@ execute:
 pacman::p_load(data.table, dplyr, plotly, rethinking)
 ```
 
-# Goal:
+# Goal
 
-1.  Want to construct an approach that allow us to claim "we are 95% confident that this confidence region covers the true set".\
+-   **Ultimate goal**: Develop an approach that allows us to claim "With 95% confidence, this confidence region contains the true set".
 
-## Constructing the full space
+-   **Temporary goal**: In reality, the true set is unobserved; we only observe data. Since many causal discovery algorithms operates on the data correlation matrix $R_{obs}$, our intermediate goal is to generate perturbations around $R_{obs}$, aiming to represent the sampling distribution of the correlation estimator under repeated sampling. We then use this approximation to construct a confidence region for the underlying population correlation structure, and study how causal discovery perform across this region.
+
+    Some questions to think and ask:
+
+    1.  What is our scope, what assumptions are we making:
+
+        We assume infinite sample at this stage, distribution of pearson correlation estimators is asymptotically normal. Want a frequentist approach.
+
+    2.  How to generate perturbations around $R_{obs}$ ?
+
+    3.  How do measure the distance between each perturbed sample $R^{\prime}_{obs}$ with $R_{obs}$ ?
+
+    4.  
+
+# Visualizing Correlation Space
 
 Approaches:
 
@@ -237,3 +251,7 @@ p20 <- p2 %>%
   )
 p20
 ```
+
+# Asymptotic Distribution of R
+
+# 
