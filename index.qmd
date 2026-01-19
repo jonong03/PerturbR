@@ -1,6 +1,8 @@
 ---
 title: "3D Correlation Space"
-format: html
+format:
+  html:
+    css: styles.css
 editor: visual
 execute:
   echo: false
@@ -286,7 +288,7 @@ $$
 
 When $\rho$ is unknown, we use plug-in estimate $\hat\rho$.
 
-\textcolor{red}{Can we prove that $\hat\Psi \xrightarrow{p} \Psi$ ? }
+This is \[red\]{.Can we prove that $\hat\Psi \xrightarrow{p} \Psi$ ? }
 
 ## Confidence Ellipsoid of $\rho$
 
