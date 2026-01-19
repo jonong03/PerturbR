@@ -25,14 +25,18 @@ pacman::p_load(data.table, dplyr, plotly, rethinking)
 
         We assume infinite sample at this stage, distribution of pearson correlation estimators is asymptotically normal. Want a frequentist approach.
 
-    2.  How to generate perturbations around $R_{obs}$ ?\
+    2.  What is the correlation space?
+
+        $p$- dimensional elliptope
+
+    3.  How to generate perturbations around $R_{obs}$ ?\
         Using asymptotic theory, we get the asymptotic distribution of $R_{obs}$ and generate samples from the null distribution.
 
-    3.  How to measure the distance between each perturbed sample $R^{\prime}_{obs}$ with $R_{obs}$ ?
+    4.  How to measure the distance between each perturbed sample $R^{\prime}_{obs}$ with $R_{obs}$ ?
 
         Mahalanobis distance
 
-    4.  
+    5.  
 
 # Notations
 
@@ -44,9 +48,9 @@ $R^{\prime}_{obs}$: Use superscript "$\prime$ " to denote a perturbed object
 
 $\rho$: $vech(R)$, the unique off-diagonal elements of $R$ matrix.
 
-$\rho_{obs}$: $vech(R_{obs})$, the unique off-diagonal elements of $R_{obs}$
+$\hat\rho$: $vech(R_{obs})$, the unique off-diagonal elements of $R_{obs}$
 
-$\rho^{\prime}_{obs}$: $vech(R^{\prime}_{obs})$, the unique off-diagonal elements of $R^{\prime}_{obs}$
+$\hat\rho^{\prime}$: $vech(R^{\prime}_{obs})$, the unique off-diagonal elements of $R^{\prime}_{obs}$
 
 $\mu$: population mean
 
@@ -60,7 +64,9 @@ $p$: number of parameters (length of $\rho$) = $\frac{d(d-1)}{2}$
 
 # Visualizing Correlation Space
 
-Using LKJ distribution to sample correlation matrices. The distribution is parametrized by $\eta$, representing centrality: larger $\eta$, closer to the identity matrix.
+## Correlation space for 3 variables (d=3)
+
+Sample correlation matrices from LKJ distribution, which uses $\eta$ to parametrize *centrality*: larger $\eta$, closer to the identity matrix.
 
 ```{r}
 #| echo: false
@@ -74,12 +80,12 @@ df2 <- data.frame(x=samp2[, 2, 1], y=samp2[, 3, 1], z=samp2[, 3, 2])
 df3 <- data.frame(x=samp3[, 2, 1], y=samp3[, 3, 1], z=samp3[, 3, 2])
 
 p1<- plot_ly(df1,  x = ~x, y = ~y, z = ~z, type = "scatter3d", 
-  mode = "markers",   marker = list(size = 3), name="eta=0.1 (sample towards edges") %>%
-  layout(title = "Approach 2: LKJ-distribution")
+  mode = "markers",   marker = list(size = 3), name="eta=0.1 (towards boundary") %>%
+  layout(title = "Correlation Space")
 p2<- plot_ly(df2,  x = ~x, y = ~y, z = ~z, type = "scatter3d",color = I("lightblue"),
-  mode = "markers",   marker = list(size = 3), name="eta=1 (uniform distribution)") 
+  mode = "markers",   marker = list(size = 3), name="eta=1 (uniform)") 
 p3<- plot_ly(df3,  x = ~x, y = ~y, z = ~z, type = "scatter3d",
-  mode = "markers",   marker = list(size = 3), name="eta=10 (sample towards I") 
+  mode = "markers",   marker = list(size = 3), name="eta=10 (towards Identity") 
 subplot(p1, p2, p3, nrows = 1, margin=0.05)
 
 ```
@@ -248,6 +254,78 @@ p20 <- p2 %>%
 p20
 ```
 
-# Asymptotic Distribution of R
+# Wald-Type Confidence Regions for the Correlation Vector $\rho$
 
-# 
+## Asymptotic Distribution
+
+Under standard regularity conditions: normality and finite asypmtotic variance (finite fourth-order moment $$
+  \sqrt{n}(\hat{\rho}-\rho) \xrightarrow{d} N(0,\Psi)
+$$where:
+
+-   diagonal of $\Psi$: $\psi_{jk} = 1-\rho_{jk}^2$
+
+-   off-diagonal of $\Psi$:
+
+$$
+\psi_{jk,hm}
+\;=\;
+N\,\sigma_{jk,hm}
+\;=\;
+\frac{1}{2}\Big[
+(\rho_{jh}-\rho_{jk}\rho_{kh})(\rho_{km}-\rho_{kh}\rho_{hm})
+\;+\;
+(\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{kj}\rho_{jh})
+\;+\;
+(\rho_{jh}-\rho_{jm}\rho_{mh})(\rho_{km}-\rho_{kj}\rho_{jm})
+\;+\;
+(\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{km}\rho_{mh})
+\Big].
+$$
+
+When $\rho$ is unknown, we use plug-in estimate $\hat\rho$
+
+## Confidence Ellipsoid of $\rho$
+
+Let $Z = \Psi^{-\frac{1}{2}}{\sqrt{n}}(\hat{\rho} - \rho)$, we have $Z \xrightarrow{d} N(0,I_p)$. Therefore, $Z^TZ \xrightarrow{d} \chi^2_{p}$ (can be proven using Slutsky Theorem).
+
+The confidence ellipsoid $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho)^T\Psi^{-1}(\hat{\rho} - \rho)\ \leq \chi^{2}_{p, 1-\alpha} \}$, where $\rho$ must satisfy the correlation matrix criteria: PSD.
+
+All perturbed vectors $\hat\rho^{\prime}$ satisfying the inequality are accepted as points inside the ellipsoid.
+
+# Generating random correlation samples around $\rho_0$
+
+What are the approaches:
+
+-   Generate MVN data based on $\hat\rho$ and compute its correlation vector $\hat\rho^{\prime}$
+-   Generate $\hat\rho^{\prime}$ from $\hat\rho$ directly:
+    -   Sample uniformly from a sphere-cloud
+
+    -   Sample from a wald-cloud
+
+        -   Sample from the full distributional spread around $\rho_0$:
+
+            Let $\rho_0 = vech(R_0)$. For testing $H_0: \rho = \rho_0$, based on asymptotic normality of $\rho$, we have wald-type statistic
+
+            $$
+            W = (\hat\rho - \rho_0)^T \Psi(\rho_0)^{-1} (\hat\rho - \rho_0) \sim \chi^2_p
+            $$
+
+            This implies we can draw $\hat\rho$ under the null distribution $H_0$:
+
+            $$
+            \hat\rho^{(b)} \sim N_p(\rho_0, \frac{\Psi(\rho_0)}{n})
+            $$
+
+            Or, equivalently, $\hat\rho^{(b)} = \rho_0 + Lz$, where $z \sim N(0,I_p)$, $L= UD^\frac{1}{2}$ (eigen-decomposition of $\Psi(\rho_0)$.
+
+        -   Sample **uniformly** around $\rho_0$:
+
+            $$
+            \hat\rho^{(b)} = \rho_0 + L(\sqrt{c} r^{\frac{1}{p}}u)
+            $$
+
+            where $c: \chi^2_{p, 1-\alpha}$, $r$ represent a random radius sample from $Unif(0,1)$, $u$ represents the random unit direction, sample from $N(0,I_p)$ and rescale to have length (norm) 1.
+
+            The role of $c$ is to ensure we sample within some measurable bound (e.g., 95% confidence ellipsoid).
+
+2

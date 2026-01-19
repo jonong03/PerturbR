@@ -25,6 +25,27 @@
     "href": "index.html",
     "title": "3D Correlation Space",
     "section": "",
-    "text": "Ultimate goal: Develop an approach that allows us to claim “With 95% confidence, this confidence region contains the true set”.\nTemporary goal: In reality, the true set is unobserved; we only observe data. Since many causal discovery algorithms operates on the data correlation matrix \\(R_{obs}\\), our intermediate goal is to generate perturbations around \\(R_{obs}\\), aiming to represent the sampling distribution of the correlation estimator under repeated sampling. We then use this approximation to construct a confidence region for the underlying population correlation structure, and study how causal discovery perform across this region.\nSome questions:\n\nWhat is our scope, what assumptions are we making:\nWe assume infinite sample at this stage, distribution of pearson correlation estimators is asymptotically normal. Want a frequentist approach.\nHow to generate perturbations around \\(R_{obs}\\) ?\nUsing asymptotic theory, we get the asymptotic distribution of \\(R_{obs}\\) and generate samples from the null distribution.\nHow to measure the distance between each perturbed sample \\(R^{\\prime}_{obs}\\) with \\(R_{obs}\\) ?\nMahalanobis distance"
+    "text": "Ultimate goal: Develop an approach that allows us to claim “With 95% confidence, this confidence region contains the true set”.\nTemporary goal: In reality, the true set is unobserved; we only observe data. Since many causal discovery algorithms operates on the data correlation matrix \\(R_{obs}\\), our intermediate goal is to generate perturbations around \\(R_{obs}\\), aiming to represent the sampling distribution of the correlation estimator under repeated sampling. We then use this approximation to construct a confidence region for the underlying population correlation structure, and study how causal discovery perform across this region.\nSome questions:\n\nWhat is our scope, what assumptions are we making:\nWe assume infinite sample at this stage, distribution of pearson correlation estimators is asymptotically normal. Want a frequentist approach.\nWhat is the correlation space?\n\\(p\\)- dimensional elliptope\nHow to generate perturbations around \\(R_{obs}\\) ?\nUsing asymptotic theory, we get the asymptotic distribution of \\(R_{obs}\\) and generate samples from the null distribution.\nHow to measure the distance between each perturbed sample \\(R^{\\prime}_{obs}\\) with \\(R_{obs}\\) ?\nMahalanobis distance"
+  },
+  {
+    "objectID": "index.html#correlation-space-for-3-variables-d3",
+    "href": "index.html#correlation-space-for-3-variables-d3",
+    "title": "3D Correlation Space",
+    "section": "Correlation space for 3 variables (d=3)",
+    "text": "Correlation space for 3 variables (d=3)\nSample correlation matrices from LKJ distribution, which uses \\(\\eta\\) to parametrize centrality: larger \\(\\eta\\), closer to the identity matrix."
+  },
+  {
+    "objectID": "index.html#asymptotic-distribution",
+    "href": "index.html#asymptotic-distribution",
+    "title": "3D Correlation Space",
+    "section": "Asymptotic Distribution",
+    "text": "Asymptotic Distribution\nUnder standard regularity conditions: normality and finite asypmtotic variance (finite fourth-order moment \\[\n  \\sqrt{n}(\\hat{\\rho}-\\rho) \\xrightarrow{d} N(0,\\Psi)\n\\]where:\n\ndiagonal of \\(\\Psi\\): \\(\\psi_{jk} = 1-\\rho_{jk}^2\\)\noff-diagonal of \\(\\Psi\\):\n\n\\[\n\\psi_{jk,hm}\n\\;=\\;\nN\\,\\sigma_{jk,hm}\n\\;=\\;\n\\frac{1}{2}\\Big[\n(\\rho_{jh}-\\rho_{jk}\\rho_{kh})(\\rho_{km}-\\rho_{kh}\\rho_{hm})\n\\;+\\;\n(\\rho_{jm}-\\rho_{jk}\\rho_{km})(\\rho_{kh}-\\rho_{kj}\\rho_{jh})\n\\;+\\;\n(\\rho_{jh}-\\rho_{jm}\\rho_{mh})(\\rho_{km}-\\rho_{kj}\\rho_{jm})\n\\;+\\;\n(\\rho_{jm}-\\rho_{jk}\\rho_{km})(\\rho_{kh}-\\rho_{km}\\rho_{mh})\n\\Big].\n\\]\nWhen \\(\\rho\\) is unknown, we use plug-in estimate \\(\\hat\\rho\\)"
+  },
+  {
+    "objectID": "index.html#confidence-ellipsoid-of-rho",
+    "href": "index.html#confidence-ellipsoid-of-rho",
+    "title": "3D Correlation Space",
+    "section": "Confidence Ellipsoid of \\(\\rho\\)",
+    "text": "Confidence Ellipsoid of \\(\\rho\\)\nLet \\(Z = \\Psi^{-\\frac{1}{2}}{\\sqrt{n}}(\\hat{\\rho} - \\rho)\\), we have \\(Z \\xrightarrow{d} N(0,I_p)\\). Therefore, \\(Z^TZ \\xrightarrow{d} \\chi^2_{p}\\) (can be proven using Slutsky Theorem).\nThe confidence ellipsoid \\(C_{1-\\alpha} = \\{ \\rho:  \\ n(\\hat{\\rho} - \\rho)^T\\Psi^{-1}(\\hat{\\rho} - \\rho)\\ \\leq \\chi^{2}_{p, 1-\\alpha} \\}\\), where \\(\\rho\\) must satisfy the correlation matrix criteria: PSD.\nAll perturbed vectors \\(\\hat\\rho^{\\prime}\\) satisfying the inequality are accepted as points inside the ellipsoid."
   }
 ]
