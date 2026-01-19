@@ -260,7 +260,7 @@ Note: all the below theories have a corresponding z-transformed (variance stabil
 
 ## Asymptotic Distribution
 
-Under standard regularity conditions: normality and finite asypmtotic variance (finite fourth-order moment $$
+Under standard regularity conditions: normality and finite asypmtotic covariance $\Psi \in R^{p \times p}$ (and also finite fourth-order moment), CLT shows that $$
   \sqrt{n}(\hat{\rho}-\rho) \xrightarrow{d} N(0,\Psi)
 $$where:
 
@@ -284,15 +284,27 @@ N\,\sigma_{jk,hm}
 \Big].
 $$
 
-When $\rho$ is unknown, we use plug-in estimate $\hat\rho$
+When $\rho$ is unknown, we use plug-in estimate $\hat\rho$.
+
+\textcolor{red}{Can we prove that $\hat\Psi \xrightarrow{p} \Psi$ ? }
 
 ## Confidence Ellipsoid of $\rho$
 
-Let $Z = \Psi^{-\frac{1}{2}}{\sqrt{n}}(\hat{\rho} - \rho)$, we have $Z \xrightarrow{d} N(0,I_p)$. Therefore, $Z^TZ \xrightarrow{d} \chi^2_{p}$ (can be proven using Slutsky Theorem).
+Let $Z = \Psi^{-\frac{1}{2}}{\sqrt{n}}(\hat{\rho} - \rho)$, we have $Z \xrightarrow{d} N(0,I_p)$. Therefore, by continuous mapping theorem $Z^TZ \xrightarrow{d} \chi^2_{p}$.
 
-The confidence ellipsoid $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho)^T\Psi^{-1}(\hat{\rho} - \rho)\ \leq \chi^{2}_{p, 1-\alpha} \}$, where $\rho$ must satisfy the correlation matrix criteria: PSD.
+The confidence ellipsoid $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho)^T\Psi^{-1}(\hat{\rho} - \rho)\ \leq \chi^{2}_{p, 1-\alpha} \}$.
 
 All perturbed vectors $\hat\rho^{\prime}$ satisfying the inequality are accepted as points inside the ellipsoid.
+
+Note: I do think the confidence ellipsoid should be the intersect of $C_{1-\alpha}$ and the PSD criteria.
+
+\textcolor{red}{Note: I do think the confidence ellipsoid should be the *intersect* of $C_{1-\alpha}$ and the PSD criteria.}
+
+Plots:
+
+1.  When $\rho = 0$ (Identity matrix)
+2.  When $\rho$ is small: correlation coefficients are small; $R$ is close to the identity matrix; large $\eta$ value in the lkj-distribution
+3.  When $\rho$ is large (not all $\rho_{ij}$s, but some) : correlation coefficients are large; $R$ is close the boundary of correlation space; extremely small $\eta$ value in the lkj-distribution
 
 # Generating random samples around $\rho_0$
 
@@ -352,16 +364,22 @@ The goal of simulation: check whether nominal and actual coverage of CR are the 
 >
 > **Output:** Coverage level $CR_{1-\alpha}(\hat\rho)$
 >
-> \$H \\leftarrow 0 \$
+> $H \leftarrow 0$
 >
 > **for** $b$ $\leftarrow$ 1 to $B$:
 >
 > 1\. Sample $\hat\rho^{(b)}$ from $CR_{1-\alpha}(\hat\rho)$ \[Algorithm X\]
 >
-> 2\. Compute $\hat\Psi(\hat\rho^{(b)})$ \[Covariance\]
+> 2\. Compute covariance $\hat\Psi(\hat\rho^{(b)})$
 >
-> 3\. Compute $T_b \leftarrow n(\rho_0-\hat{\rho}^{(b)})^{\top}[\hat\Psi(\hat\rho^{(b)})]^{-1}(\rho_0-\hat{\rho}^{(b)})$ \[mahalanobis distance\]
+> 3\. Compute mahalanobis distance $T_b \leftarrow n(\rho_0-\hat{\rho}^{(b)})^{\top}[\hat\Psi(\hat\rho^{(b)})]^{-1}(\rho_0-\hat{\rho}^{(b)})$
 >
 > 4\. if $T_b \leq \chi^2_{p,1-\alpha}$, then $H \leftarrow H+1$ ;
 >
-> **return** $H /B$ \[actual coverage\]
+> **return** $H /B$ (actual coverage)
+
+This simulation repeats over different $\rho_0$'s, which are uniformly sampled from the rlkj distribution by under different $\eta$. $n$ is set to $1e6$ to mirror aysmptotic-ness, $\alpha = 0.05, 0.10$, $B=  200$.
+
+Simulation output here
+
+Visualization of
