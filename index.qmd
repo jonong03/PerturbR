@@ -290,6 +290,8 @@ When $\rho$ is unknown, we use plug-in estimate $\hat\rho$.
 
 This is \[red\]{.Can we prove that $\hat\Psi \xrightarrow{p} \Psi$ ? }
 
+<span style="color: red;"> Can we prove that $\hat\Psi \xrightarrow{p} \Psi$ ? </span>.
+
 ## Confidence Ellipsoid of $\rho$
 
 Let $Z = \Psi^{-\frac{1}{2}}{\sqrt{n}}(\hat{\rho} - \rho)$, we have $Z \xrightarrow{d} N(0,I_p)$. Therefore, by continuous mapping theorem $Z^TZ \xrightarrow{d} \chi^2_{p}$.
