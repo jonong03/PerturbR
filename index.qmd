@@ -346,25 +346,13 @@ Frequentist interpretation of confidence region: Over repeated samples, the conf
 
 The goal of simulation: check whether nominal and actual coverage of CR are the same, i.e., when $\alpha = 0.05$, do we get actual coverage of 95%?
 
-**Algorithm: Sample uniformly inside confidence ellipsoid**
-
-**Input:** $\hat{\rho}$, $\widehat{\Psi}$, $n$, $\alpha$, $m$\
-**Output:** $\{\rho^{(i)}\}_{i=1}^m$
-
-``` {.latex .text}
-1. qα ← χ²_{p, 1−α}
-2. A ← chol( (qα / n) Ψ̂ )
-
-3. for i = 1,...,m:
-     a) g ~ N(0, I_p)
-     b) s ← g / ||g||2
-     c) u ~ Uniform(0,1)
-     d) r ← u^(1/p)
-     e) z ← r s
-     f) ρ^(i) ← ρ̂ + A z
-
-4. return {ρ^(i)}_{i=1}^m
-$\alpha$
-```
-
-/
+| **Algorithm: Monte Carlo estimate of coverage of** $CR_{1-\alpha}(\hat{\rho})$
+| **Input:** $\rho_0$, sample size $n$, significance level $\alpha$, number of replicates $B$
+| **Output:** Coverage level $CR_{1-\alpha}(\hat\rho)$
+| $H \leftarrow 0$
+| **for** $b$ $\leftarrow$ 1 to $B$:
+| 1. Sample $\hat\rho^{(b)}$ from $CR_{1-\alpha}(\hat\rho)$   \[Algorithm X\]
+| 2. Compute $\hat\Psi(\hat\rho^{(b)})$                        \[Covariance\]
+| 3. Compute $T_b \leftarrow n(\rho_0-\hat{\rho}^{(b)})^{\top}[\hat\Psi(\hat\rho^{(b)})]^{-1}(\rho_0-\hat{\rho}^{(b)})$     \[mahalanobis distance\]
+| 4. if $T_b \leq \chi^2_{p,1-\alpha}$, then $H \leftarrow H+1$ ;
+| **return** $H /B$     \[actual coverage\]
