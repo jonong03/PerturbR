@@ -256,6 +256,8 @@ p20
 
 # Wald-Type Confidence Regions for the Correlation Vector $\rho$
 
+Note: all the below theories have a corresponding z-transformed (variance stabilizing) approach. Details to be added later.
+
 ## Asymptotic Distribution
 
 Under standard regularity conditions: normality and finite asypmtotic variance (finite fourth-order moment $$
@@ -275,7 +277,7 @@ N\,\sigma_{jk,hm}
 (\rho_{jh}-\rho_{jk}\rho_{kh})(\rho_{km}-\rho_{kh}\rho_{hm})
 \;+\;
 (\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{kj}\rho_{jh})
-\;+\;
+\;+\; \\
 (\rho_{jh}-\rho_{jm}\rho_{mh})(\rho_{km}-\rho_{kj}\rho_{jm})
 \;+\;
 (\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{km}\rho_{mh})
@@ -292,15 +294,17 @@ The confidence ellipsoid $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho)^T\Psi^
 
 All perturbed vectors $\hat\rho^{\prime}$ satisfying the inequality are accepted as points inside the ellipsoid.
 
-# Generating random correlation samples around $\rho_0$
+# Generating random samples around $\rho_0$
 
-What are the approaches:
+## Approaches
 
--   Generate MVN data based on $\hat\rho$ and compute its correlation vector $\hat\rho^{\prime}$
--   Generate $\hat\rho^{\prime}$ from $\hat\rho$ directly:
-    -   Sample uniformly from a sphere-cloud
+1.  Generate MVN data based on $\hat\rho$ and compute its correlation vector $\hat\rho^{\prime}$
+2.  Generate $\hat\rho^{\prime}$ from $\hat\rho$ directly:
+    1.  Sample uniformly from a sphere-cloud
 
-    -   Sample from a wald-cloud
+        code for epsilon ball.
+
+    2.  Sample from a wald-cloud
 
         -   Sample from the full distributional spread around $\rho_0$:
 
@@ -328,4 +332,39 @@ What are the approaches:
 
             The role of $c$ is to ensure we sample within some measurable bound (e.g., 95% confidence ellipsoid).
 
-2
+            Show code and plots here
+
+# Simulating Coverage
+
+Definition of confidence region (CR):
+
+$$
+Pr_\rho(\rho \in CR_{1-\alpha}(\hat\rho)) = 1-\alpha 
+$$
+
+Frequentist interpretation of confidence region: Over repeated samples, the confidence region (which is random, depends on sample) contains the fixed true $\rho$ with probability $1-\alpha$.
+
+The goal of simulation: check whether nominal and actual coverage of CR are the same, i.e., when $\alpha = 0.05$, do we get actual coverage of 95%?
+
+**Algorithm: Sample uniformly inside confidence ellipsoid**
+
+**Input:** $\hat{\rho}$, $\widehat{\Psi}$, $n$, $\alpha$, $m$\
+**Output:** $\{\rho^{(i)}\}_{i=1}^m$
+
+``` {.latex .text}
+1. qα ← χ²_{p, 1−α}
+2. A ← chol( (qα / n) Ψ̂ )
+
+3. for i = 1,...,m:
+     a) g ~ N(0, I_p)
+     b) s ← g / ||g||2
+     c) u ~ Uniform(0,1)
+     d) r ← u^(1/p)
+     e) z ← r s
+     f) ρ^(i) ← ρ̂ + A z
+
+4. return {ρ^(i)}_{i=1}^m
+$\alpha$
+```
+
+/

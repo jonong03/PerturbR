@@ -39,7 +39,7 @@
     "href": "index.html#asymptotic-distribution",
     "title": "3D Correlation Space",
     "section": "Asymptotic Distribution",
-    "text": "Asymptotic Distribution\nUnder standard regularity conditions: normality and finite asypmtotic variance (finite fourth-order moment \\[\n  \\sqrt{n}(\\hat{\\rho}-\\rho) \\xrightarrow{d} N(0,\\Psi)\n\\]where:\n\ndiagonal of \\(\\Psi\\): \\(\\psi_{jk} = 1-\\rho_{jk}^2\\)\noff-diagonal of \\(\\Psi\\):\n\n\\[\n\\psi_{jk,hm}\n\\;=\\;\nN\\,\\sigma_{jk,hm}\n\\;=\\;\n\\frac{1}{2}\\Big[\n(\\rho_{jh}-\\rho_{jk}\\rho_{kh})(\\rho_{km}-\\rho_{kh}\\rho_{hm})\n\\;+\\;\n(\\rho_{jm}-\\rho_{jk}\\rho_{km})(\\rho_{kh}-\\rho_{kj}\\rho_{jh})\n\\;+\\;\n(\\rho_{jh}-\\rho_{jm}\\rho_{mh})(\\rho_{km}-\\rho_{kj}\\rho_{jm})\n\\;+\\;\n(\\rho_{jm}-\\rho_{jk}\\rho_{km})(\\rho_{kh}-\\rho_{km}\\rho_{mh})\n\\Big].\n\\]\nWhen \\(\\rho\\) is unknown, we use plug-in estimate \\(\\hat\\rho\\)"
+    "text": "Asymptotic Distribution\nUnder standard regularity conditions: normality and finite asypmtotic variance (finite fourth-order moment \\[\n  \\sqrt{n}(\\hat{\\rho}-\\rho) \\xrightarrow{d} N(0,\\Psi)\n\\]where:\n\ndiagonal of \\(\\Psi\\): \\(\\psi_{jk} = 1-\\rho_{jk}^2\\)\noff-diagonal of \\(\\Psi\\):\n\n\\[\n\\psi_{jk,hm}\n\\;=\\;\nN\\,\\sigma_{jk,hm}\n\\;=\\;\n\\frac{1}{2}\\Big[\n(\\rho_{jh}-\\rho_{jk}\\rho_{kh})(\\rho_{km}-\\rho_{kh}\\rho_{hm})\n\\;+\\;\n(\\rho_{jm}-\\rho_{jk}\\rho_{km})(\\rho_{kh}-\\rho_{kj}\\rho_{jh})\n\\;+\\; \\\\\n(\\rho_{jh}-\\rho_{jm}\\rho_{mh})(\\rho_{km}-\\rho_{kj}\\rho_{jm})\n\\;+\\;\n(\\rho_{jm}-\\rho_{jk}\\rho_{km})(\\rho_{kh}-\\rho_{km}\\rho_{mh})\n\\Big].\n\\]\nWhen \\(\\rho\\) is unknown, we use plug-in estimate \\(\\hat\\rho\\)"
   },
   {
     "objectID": "index.html#confidence-ellipsoid-of-rho",
@@ -47,5 +47,12 @@
     "title": "3D Correlation Space",
     "section": "Confidence Ellipsoid of \\(\\rho\\)",
     "text": "Confidence Ellipsoid of \\(\\rho\\)\nLet \\(Z = \\Psi^{-\\frac{1}{2}}{\\sqrt{n}}(\\hat{\\rho} - \\rho)\\), we have \\(Z \\xrightarrow{d} N(0,I_p)\\). Therefore, \\(Z^TZ \\xrightarrow{d} \\chi^2_{p}\\) (can be proven using Slutsky Theorem).\nThe confidence ellipsoid \\(C_{1-\\alpha} = \\{ \\rho:  \\ n(\\hat{\\rho} - \\rho)^T\\Psi^{-1}(\\hat{\\rho} - \\rho)\\ \\leq \\chi^{2}_{p, 1-\\alpha} \\}\\), where \\(\\rho\\) must satisfy the correlation matrix criteria: PSD.\nAll perturbed vectors \\(\\hat\\rho^{\\prime}\\) satisfying the inequality are accepted as points inside the ellipsoid."
+  },
+  {
+    "objectID": "index.html#approaches",
+    "href": "index.html#approaches",
+    "title": "3D Correlation Space",
+    "section": "Approaches",
+    "text": "Approaches\n\nGenerate MVN data based on \\(\\hat\\rho\\) and compute its correlation vector \\(\\hat\\rho^{\\prime}\\)\nGenerate \\(\\hat\\rho^{\\prime}\\) from \\(\\hat\\rho\\) directly:\n\nSample uniformly from a sphere-cloud\ncode for epsilon ball.\nSample from a wald-cloud\n\nSample from the full distributional spread around \\(\\rho_0\\):\nLet \\(\\rho_0 = vech(R_0)\\). For testing \\(H_0: \\rho = \\rho_0\\), based on asymptotic normality of \\(\\rho\\), we have wald-type statistic\n\\[\nW = (\\hat\\rho - \\rho_0)^T \\Psi(\\rho_0)^{-1} (\\hat\\rho - \\rho_0) \\sim \\chi^2_p\n\\]\nThis implies we can draw \\(\\hat\\rho\\) under the null distribution \\(H_0\\):\n\\[\n\\hat\\rho^{(b)} \\sim N_p(\\rho_0, \\frac{\\Psi(\\rho_0)}{n})\n\\]\nOr, equivalently, \\(\\hat\\rho^{(b)} = \\rho_0 + Lz\\), where \\(z \\sim N(0,I_p)\\), \\(L= UD^\\frac{1}{2}\\) (eigen-decomposition of \\(\\Psi(\\rho_0)\\).\nSample uniformly around \\(\\rho_0\\):\n\\[\n\\hat\\rho^{(b)} = \\rho_0 + L(\\sqrt{c} r^{\\frac{1}{p}}u)\n\\]\nwhere \\(c: \\chi^2_{p, 1-\\alpha}\\), \\(r\\) represent a random radius sample from \\(Unif(0,1)\\), \\(u\\) represents the random unit direction, sample from \\(N(0,I_p)\\) and rescale to have length (norm) 1.\nThe role of \\(c\\) is to ensure we sample within some measurable bound (e.g., 95% confidence ellipsoid).\nShow code and plots here"
   }
 ]
