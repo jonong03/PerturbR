@@ -19,58 +19,54 @@ pacman::p_load(data.table, dplyr, plotly, rethinking)
 
 -   **Temporary goal**: In reality, the true set is unobserved; we only observe data. Since many causal discovery algorithms operates on the data correlation matrix $R_{obs}$, our intermediate goal is to generate perturbations around $R_{obs}$, aiming to represent the sampling distribution of the correlation estimator under repeated sampling. We then use this approximation to construct a confidence region for the underlying population correlation structure, and study how causal discovery perform across this region.
 
-    Some questions to think and ask:
+-   Some questions:
 
     1.  What is our scope, what assumptions are we making:
 
         We assume infinite sample at this stage, distribution of pearson correlation estimators is asymptotically normal. Want a frequentist approach.
 
-    2.  How to generate perturbations around $R_{obs}$ ?
+    2.  How to generate perturbations around $R_{obs}$ ?\
+        Using asymptotic theory, we get the asymptotic distribution of $R_{obs}$ and generate samples from the null distribution.
 
-    3.  How do measure the distance between each perturbed sample $R^{\prime}_{obs}$ with $R_{obs}$ ?
+    3.  How to measure the distance between each perturbed sample $R^{\prime}_{obs}$ with $R_{obs}$ ?
+
+        Mahalanobis distance
 
     4.  
 
+# Notations
+
+$R$: True R, unknown
+
+$R_{obs}$: Observed R, typically estimate from sample data
+
+$R^{\prime}_{obs}$: Use superscript "$\prime$ " to denote a perturbed object
+
+$\rho$: $vech(R)$, the unique off-diagonal elements of $R$ matrix.
+
+$\rho_{obs}$: $vech(R_{obs})$, the unique off-diagonal elements of $R_{obs}$
+
+$\rho^{\prime}_{obs}$: $vech(R^{\prime}_{obs})$, the unique off-diagonal elements of $R^{\prime}_{obs}$
+
+$\mu$: population mean
+
+$\Sigma$: Covariance matrix
+
+$\Psi$: Covariance matrix of pearson correlation coefficient
+
+$d$: number of variables in data
+
+$p$: number of parameters (length of $\rho$) = $\frac{d(d-1)}{2}$
+
 # Visualizing Correlation Space
 
-Approaches:
-
-1.  Construct x, y, z $\in$ \[-1,1\]. Check which combination is positive semi-definite using determinants. Plot results
-
-2.  Leverage LKJ distribution, sample N samples and plot.
-
-    The LKJ distribution provides
-
-```{r}
-#| echo: false
-x<- y<- z<- seq(-1,1, length= 30)   #r12, r13, r23
-dt<- expand.grid(x=x,y=y,z=z) %>% as.data.table
-dt[,psd:= 1-x^2 -y^2-z^2- 2*x*y*z]
-dt<- dt[psd>0,]
-p0<- plot_ly(data= dt, x = ~x, y = ~y, z = ~z, type = "scatter3d",
-  mode = "markers",
-  marker = list(size = 2)) %>% layout(
-  title = list(
-    text = "Approach 1: Valid 3-d correlation matrices by PSD",
-    x = 0.5,       # 0 = left, 0.5 = center, 1 = right
-    xanchor = "center",
-    yanchor = "top",
-    font = list(size = 20, color = "black")
-  ),
-  scene = list(
-    xaxis = list(title = "r12"),
-    yaxis = list(title = "r13"),
-    zaxis = list(title = "r23")
-  )
-)
-p0
-```
+Using LKJ distribution to sample correlation matrices. The distribution is parametrized by $\eta$, representing centrality: larger $\eta$, closer to the identity matrix.
 
 ```{r}
 #| echo: false
 N <- 3000
 samp1 <- rlkjcorr(N, K = 3, eta = 0.1) #eta parameter represents density of sampling
-samp2<- rlkjcorr(N, K = 3, eta = 1)
+samp2 <- rlkjcorr(N, K = 3, eta = 1)
 samp3 <- rlkjcorr(N, K = 3, eta = 10)
 
 df1 <- data.frame(x=samp1[, 2, 1], y=samp1[, 3, 1], z=samp1[, 3, 2])
