@@ -59,7 +59,7 @@ $p$: number of parameters (length of $\rho$) = $\frac{d(d-1)}{2}$
 
 # Visualizing $\rho$ Space
 
-## Correlation space for 3 variables (d=3)
+## Correlation space for 3 variables ($d$ = 3)
 
 Sample correlation matrices from LKJ distribution, which uses $\eta$ to parametrize *centrality*: larger $\eta$, closer to the identity matrix.
 
@@ -378,10 +378,12 @@ Why don't we use the first approach (Generate data then compute correlation) ?
 Notes:
 
 1.  Previously discuss a sphere-cloud approach, I modified it to the "wald-cloud" (approach 2) above, this is to consider the covariance of correlation under null.
+2.  The rank deficient problem and implications:
+    1.  Given a $\rho_0$, if $\Psi(\rho_0)$ is rank-deficient, the above approach will not be feasible. Either choose a different $\rho_0$ , or use a different approach to conduct inference.
+    2.  A few approaches we discussed so far:
+        1.  Z-transformation on $\rho$ to stabilize variance. (not included yet)
 
-2.  Z-transformation on $\rho$ to stabilize variance. (not included yet)
-
-3.  When $\Psi$ is rank-deficient, we discussed a potential way to solve it is to only sample in the rank-reduced space. In this case, degree of freedom will be reduced. Also, is it still chi-square?
+        2.  Only work within the rank-reduced space; the "null-space" will be treated as "constraints". In this case, degree of freedom will be reduced. Also, is it still chi-square?
 
 # Connection between $\rho$ and causal discovery
 
@@ -510,7 +512,7 @@ Sim4 will focus on $R$ object first, and Sim5 will focus on CDA.
 
 ## Simulation 4: The \$100M question - Part 1 (focus on $R$ )
 
-**Setting**: There exist an unknown truth: $R_{halo}$ , we observe $\hat{R}$ in real world, and we make perturbations on $\hat{R}$: $\hat{R}^{\prime}$.
+**Setting**: There exist an unknown truth: $R_{halo}$ , we observe a representation of $R_{halo}$, denote as $\hat{R}$ in real world, and we make perturbations on $\hat{R}$: denote as $\hat{R}^{\prime}$.
 
 **Question**:
 
@@ -548,3 +550,18 @@ Note:
 2.  
 
 ## Simulation 5: The \$100M question - Part 2 (focus on $G$ )
+
+# References
+
+# Others
+
+## Marginal inference approach
+
+1.  We discussed instead of the joint-inference approach, we could sample $\hat\rho_{ij}$ independently from its asymptotic distribution $N(\rho_{ij}, 1-\rho_{ij}^2)$.
+    1.  From simulation (similar to simulation 2 above), coverage of each $\hat\rho_{ij}$ is close to the nominal level when considered individually. However, when we consider the results across all $\rho_{ij}$ s jointly, the joint coverage from this marginal approach became poor. This is related to multiple testing problem.
+
+    2.  To construct a correlation matrix sample, we could sample each $\hat\rho_{ij}$ independently from its confidence interval, and check if that constructed matrix is PSD. If it is not PSD, we reject it.
+
+        This approach works in lower dimension, however became highly inefficient (large rejection rate) as dimension grows.
+
+        ![](docs/plots/RejectionSamplingRate.png){width="399"}
