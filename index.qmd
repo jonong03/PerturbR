@@ -64,7 +64,7 @@ $d$: number of variables in data
 
 $p$: number of parameters (length of $\rho$) = $\frac{d(d-1)}{2}$
 
-# Visualizing Correlation Space
+# Visualizing $\rho$ Space
 
 ## Correlation space for 3 variables (d=3)
 
@@ -256,7 +256,7 @@ p20 <- p2 %>%
 p20
 ```
 
-# Wald-Type Confidence Regions for the Correlation Vector $\rho$
+# Inference for $\rho$
 
 Note: all the below theories have a corresponding z-transformed (variance stabilizing) approach. Details to be added later.
 
@@ -316,63 +316,73 @@ The confidence region can be obtained through test inversion: $C_{1-\alpha} = \{
 
 All perturbed vectors $\hat\rho^{\prime}$ satisfying the inequality are accepted as points inside the ellipsoid.
 
-When $\Psi$ is unknown, by slutsky theorem, $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho)^T\hat\Psi^{-1}(\hat{\rho} - \rho)\ \leq \chi^{2}_{p, 1-\alpha} \}$
+When $\Psi$ is unknown, by slutsky theorem, $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho)^T\hat\Psi(\hat\rho)^{-1}(\hat{\rho} - \rho)\ \leq \chi^{2}_{p, 1-\alpha} \}$
 
 Note:
 
 1.  I do think the confidence ellipsoid should be the *intersect* of $C_{1-\alpha}$ <span style="color: red;"> and </span> the PSD criteria.
 2.  The plug-in approach is only true when $\hat\Psi \xrightarrow{p} \Psi$ ? , still need to prove this.
 
-Plots:
+### Visualization
 
-1.  When $\rho = 0$ (Identity matrix)
-2.  When $\rho$ is small: correlation coefficients are small; $R$ is close to the identity matrix; large $\eta$ value in the lkj-distribution
-3.  When $\rho$ is large (not all $\rho_{ij}$s, but some) : correlation coefficients are large; $R$ is close the boundary of correlation space; extremely small $\eta$ value in the lkj-distribution
+```{=html}
+<iframe src="docs/figures/p1.html" width="100%" height="650" style="border:0;"></iframe>
+```
 
 # Generating random samples around $\rho_0$
 
-## Approaches
+What are the different approach to generate random samples?
 
 1.  Generate MVN data based on $\hat\rho$ and compute its correlation vector $\hat\rho^{\prime}$
-2.  Generate $\hat\rho^{\prime}$ from $\hat\rho$ directly:
-    1.  Sample uniformly from a sphere-cloud
 
-        code for epsilon ball.
+2.  Generate $\hat\rho^{\prime}$ from $\hat\rho$ directly: sample randomly from the full distributional spread around $\rho_0$ (wald-cloud):
 
-    2.  Sample from a wald-cloud
+    Let $\rho_0 = vech(R_0)$. For testing $H_0: \rho = \rho_0$, based on asymptotic normality of $\hat\rho$, we have wald-type statistic (same as previously mentioned)
 
-        -   Sample from the full distributional spread around $\rho_0$:
+    $$
+    T = n (\hat\rho - \rho_0)^T \Psi(\rho_0)^{-1} (\hat\rho - \rho_0) \sim \chi^2_p
+    $$
 
-            Let $\rho_0 = vech(R_0)$. For testing $H_0: \rho = \rho_0$, based on asymptotic normality of $\rho$, we have wald-type statistic
+    This implies we can draw $\hat\rho$ under the null distribution $H_0$:
 
-            $$
-            W = (\hat\rho - \rho_0)^T \Psi(\rho_0)^{-1} (\hat\rho - \rho_0) \sim \chi^2_p
-            $$
+    $$
+    \hat\rho^{(b)} \sim N_p(\rho_0, \frac{\Psi(\rho_0)}{n})
+    $$
 
-            This implies we can draw $\hat\rho$ under the null distribution $H_0$:
+    Equivalently, the linear algebra approach:
 
-            $$
-            \hat\rho^{(b)} \sim N_p(\rho_0, \frac{\Psi(\rho_0)}{n})
-            $$
+    $\hat\rho^{(b)} = \rho_0 + Lz$, where $z \sim N(0,I_p)$, $L= \frac{1}{\sqrt{n}}UD^\frac{1}{2}$ (eigen-decomposition of $\Psi(\rho_0)$: $U$ is the eigenvectors , $D$ is the eigenvalue matrix)
 
-            Or, equivalently, $\hat\rho^{(b)} = \rho_0 + Lz$, where $z \sim N(0,I_p)$, $L= UD^\frac{1}{2}$ (eigen-decomposition of $\Psi(\rho_0)$.
-
-        -   Sample **uniformly** around $\rho_0$:
-
-            $$
-            \hat\rho^{(b)} = \rho_0 + L(\sqrt{c} r^{\frac{1}{p}}u)
-            $$
-
-            where $c: \chi^2_{p, 1-\alpha}$, $r$ represent a random radius sample from $Unif(0,1)$, $u$ represents the random unit direction, sample from $N(0,I_p)$ and rescale to have length (norm) 1.
-
-            The role of $c$ is to ensure we sample within some measurable bound (e.g., 95% confidence ellipsoid).
-
-            Show code and plots here
+    This should give us below statement when $n$ is infinite, $$
+    Pr_{\rho_0} (\rho \in C_{1-\alpha}(\hat\rho)) = 1-\alpha 
+    $$
 
 Why don't we use the first approach (Generate data then compute correlation) ?
 
 1.  Making extra assumption: This approach assumes the underlying data distribution, which seems to be unnecessary here in our theory. We only need $\hat\rho$ to be normal (asymptotically).
 2.  To meet out goal as a less expensive approach for resampling. Sample from $\rho$ directly will be a less expensive approach.
+
+Notes:
+
+1.  Previously discuss a sphere-cloud approach, I modified it to the "wald-cloud"(approach 2) above, this is to consider the covariance of correlation under null.
+
+### Visualization
+
+# Generating uniform samples inside confidence region of $\rho_0$ 
+
+The goal is to generate **uniform** and **random** samples **within** $C_{1-\alpha}(\rho_0)$ with guarantee: $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho_0)^T\Psi^{-1}(\hat{\rho} - \rho_0)\ \leq \chi^{2}_{p, 1-\alpha} \}$
+
+Modifying from the wald-cloud approach (matrix notation), a random uniform sample can be constructed by:
+
+$$
+\hat\rho^{(b)} = \rho_0 + L(\sqrt{c} r^{\frac{1}{p}}Z)
+$$
+
+where $c: \chi^2_{p, 1-\alpha}$, $r$ represent a random radius sample from $Unif(0,1)$, $Z$ represents the random unit direction, sample from $N(0,I_p)$ and rescale to have length (norm) 1 (i.e. $||Z|| = 1$)
+
+My intuition on this:
+
+$c$ sets the $1-\alpha$ chi-square cut-off that determines the confidence ellipsoid boundary; $r$ distributes a random radius (between (0,1)) uniformly in all $p$-dimension within the ellipsoid; $Z$ is the standard way to generate uniform random directions on a unit sphere. Geometrically, multiplying these three objects to $L$is like rotating and scaling the ellipsoid.
 
 # Simulating Coverage
 
