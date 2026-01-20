@@ -1,0 +1,254 @@
+wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FALSE) {
+  # Rpop     : Target (true) correlation matrix
+  # Rsample  : Estimated correlation matrix
+  # alpha    : Type I error rate
+  # indep    : If TRUE, use only marginal variances (diagonal Psi)
+  # asy.n    : Sample size for asymptotic covariance
+  # fisherz  : If TRUE, use Fisher-z transformation
+  # pd_check : If TRUE, reject (return FALSE) when Rsample is not PD
+  # pd_tol   : PD tolerance for smallest eigenvalue
+  
+  ## --- vectorize correlations ---
+  Rpop_vec    <- Rpop[lower.tri(Rpop)]
+  Rsample_vec <- Rsample[lower.tri(Rsample)]
+  ps <- length(Rpop_vec)  # dimension = p*(p-1)/2
+  
+  ## --- Fisher z transform if requested ---
+  if (fisherz) {
+    center_vec <- atanh(Rpop_vec)
+    sample_vec <- atanh(Rsample_vec)
+    
+    Psi <- asyCov.z(Rpop, asy.n = asy.n)     # asymptotic covariance in z-space
+  } else {
+    center_vec <- Rpop_vec
+    sample_vec <- Rsample_vec
+    
+    Psi <- metaSEM::asyCov(Rpop, n = asy.n)  # asymptotic covariance in r-space
+  }
+  
+  Psi0 <- Psi* asy.n   # covariance when sample size = 1, use this to study eigenstructure
+  
+  if(qr(Psi)$rank != ps) { return(c(distance=NA, df=NA, cricval=NA, sig=NA)) }
+  
+  ## --- Mahalanobis distance ---
+  distance = mahalanobis(x= sample_vec,center = center_vec,cov = Psi)
+  df= ps
+  
+  ## --- chi-square cutoff ---
+  cricval<- qchisq(1 - alpha, df = df)
+  pval<- as.numeric(pchisq(distance, df= df, lower.tail = F))
+  reject= as.logical(distance >= cricval)
+  out = c(T=distance, df= df, cricval= as.numeric(cricval), pval= pval, reject= reject) 
+  
+  ## --- ellipsoid membership ---
+  return(out)
+}
+
+d= 4
+n= 1e3
+R0<- rlkjcorr(1,K=d,eta=2)
+Rhat<- rlkjcorr(1,K=d,eta=2)
+wald.test(R0, Rhat)
+
+
+# Generate Sample (Full Spread)
+rwaldcloud<- function(R0, n= 1e5, B=1, output="matrix"){
+  r0 <- R0[lower.tri(R0)]
+  Psi0<- metaSEM::asyCov(R0, n = 1)
+  d<- ncol(R0)
+  ps<- length(r0)
+  
+  # Eigen Decomposition and check if R0 (and Psi0) can be decomposed
+  eig<- eigen(Psi0)
+  if(!all(eig$values > 0)) {return("Covariance of R0 is not PSD")}
+  U<- eig$vectors
+  D<- diag(ps)
+  diag(D)<- eig$values
+  
+  z<- mvtnorm::rmvnorm(n= B, sigma= diag(ps))  
+  rhat<- r0 +U%*%sqrt(D/n)%*%matrix(z, ncol=B)
+  
+  Rhat<- array(NA, dim=c(d,d,B))
+  for (b in 1:B){
+    Rhatb <- diag(d)
+    Rhatb[lower.tri(Rhatb)] <- rhat[,b]
+    Rhatb[upper.tri(Rhatb)] <- t(Rhatb)[upper.tri(Rhatb)]
+    Rhat[,,b]<- Rhatb
+  }  
+  
+  # Check which is PSD (TRUE)
+  is.psd<- sapply(1:B, function(b) all(eigen(Rhat[,,b])$values>0))
+  non.psd.count<- sum(!is.psd)
+
+  cat("non-PSD sample count:", non.psd.count, "\n")
+  
+  if(output=="matrix"){
+    return(Rhat[,,is.psd])
+  } else{
+    return(t(rhat[,is.psd]))
+  }
+    
+}
+
+d=3
+R1<- rlkjcorr(1,K=d,eta=1)
+B=1000
+Rb<- rwaldcloud(R1, n= 1e5, B=B, output="matrix")
+out<- sapply(1:B, function(b) wald.test(R1, Rb[,,b], asy.n=1e5)) %>% t()
+mean(out[,5])
+
+Rb1<- lapply(1:B, function(i) cor(mvtnorm::rmvnorm(1e5, sigma = R1)))
+out<- sapply(1:B, function(b) wald.test(R1, Rb1[[b]], asy.n=1e5)) %>% t()
+mean(out[,5])
+
+
+# Generate Sample (Uniform within boundary)
+rwaldcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output="matrix"){
+  r0 <- R0[lower.tri(R0)]
+  Psi0<- metaSEM::asyCov(R0, n = 1)
+  d<- ncol(R0)
+  ps<- length(r0)
+  
+  # Eigen Decomposition and check if R0 (and Psi0) can be decomposed
+  eig<- eigen(Psi0)
+  if(!all(eig$values > 0)) {return("Covariance of R0 is not PSD")}
+  U<- eig$vectors
+  D<- diag(ps)
+  diag(D)<- eig$values
+  
+  # rescaling factor
+  q<- qchisq(p=1-alpha, df= ps)
+  Z<- mvtnorm::rmvnorm(n= B, sigma= diag(ps)) 
+  Zs<- Z/sqrt(rowSums(Z^2))   
+  # check norm =1 : rowSums(Zs^2)=1
+  r<- runif(B)^(1/ps) #random radius
+  
+  Rhat<- array(NA, dim=c(d,d,B))
+  rhat_vech<- matrix(NA_real_, nrow = ps, ncol = B)
+  
+  for (b in 1:B){
+    rhat<- r0 + U%*%sqrt(D/n)%*%matrix(Zs[b,],ncol=1)*(sqrt(q)*r[b])
+    Rhatb <- diag(d)
+    Rhatb[lower.tri(Rhatb)] <- rhat
+    Rhatb[upper.tri(Rhatb)] <- t(Rhatb)[upper.tri(Rhatb)]
+    
+    Rhat[,,b]<- Rhatb
+    rhat_vech[,b] <- rhat
+  }  
+  
+  # Check which is PSD (TRUE)
+  is.psd<- sapply(1:B, function(b) all(eigen(Rhat[,,b])$values>0))
+  non.psd.count<- sum(!is.psd)
+  
+  cat("non-PSD sample count:", non.psd.count, "\n")
+  
+  if(output=="matrix"){
+    return(Rhat[,,is.psd])
+  } else{
+    return(t(rhat_vech[,is.psd]))
+  }
+}
+n=50000
+B=200
+R0<- R1<- rlkjcorr(1,K=d,eta=10)
+Rb<- rwaldcloud(R1, n= n, B=B, output="matrix")
+out<- sapply(1:dim(Rb)[3], function(b) wald.test(R1, Rb[,,b], asy.n=n)) %>% t()
+mean(out[,5])
+
+
+
+# plotly
+R_to_coords <- function(R) {
+  data.frame(
+    r12 = R[1,2],
+    r13 = R[1,3],
+    r23 = R[2,3]
+  )
+}
+
+d=3
+R1<- diag(d)
+R2<- rlkjcorr(1, K=d, eta= 8)
+R3<- rlkjcorr(1, K=d, eta= 1)
+R4<- rlkjcorr(1, K=d, eta= 0.2)
+
+plot.corspace<- function(R0, B=1000, alpha=0.15, asy.n=1e5, main=""){
+  r0_vech<- R_to_coords(R0)
+
+  # Generate random samples
+  rhat <- rwaldcloud(R0, B=B, n=asy.n, output= "matrix")
+  rhat_vech <- t(sapply(1:B, function(b) R_to_coords(rhat[,,b])))
+  rhat_vech <- data.frame(rhat_vech)
+  colnames(rhat_vech)<- c("r12", "r13", "r23")
+  
+  # Perform Wald-test
+  wald.out<- sapply(1:B, function(b)
+    wald.test(Rpop= R0, Rsample = rhat[,,b], alpha = alpha, asy.n= asy.n)
+    )
+  outside.ellipsoid <- wald.out[5,]
+  cov= 1-mean(outside.ellipsoid)
+
+  inside = rhat_vech[which(outside.ellipsoid==0),]
+  outside = rhat_vech[which(outside.ellipsoid==1),]
+  
+  N <- 3000
+  samp1 <- rlkjcorr(N, K = 3, eta = 1) #eta parameter represents density of sampling
+  df1 <- data.frame(r12=samp1[, 2, 1], r13=samp1[, 3, 1], r23=samp1[, 3, 2])
+  
+  title=main
+  subtitle=paste0("Actual Coverage:", cov)
+  fulltext= paste0(title,"<br><sup>", subtitle,"</sup>")
+    
+  pp<- plot_ly(
+    data = inside,
+    x = ~r12, y = ~r13, z = ~r23,
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 4),
+    name = "Inside samples"
+  ) %>%
+    add_trace(
+      data = outside,
+      x = ~r12, y = ~r13, z = ~r23,
+      type = "scatter3d",
+      mode = "markers",
+      color = "black",
+      marker = list(size = 4),
+      name = "Outside samples"
+    ) %>%
+    add_trace(
+      data = r0_vech, 
+      x = ~r12, y = ~r13, z = ~r23,
+      type = "scatter3d",
+      mode = "markers",
+      marker = list(size = 8, color = "red"),
+      name = "R0"
+    ) %>%
+    add_trace(
+      data = df1,
+      x = ~r12, y = ~r13, z = ~r23,
+      type = "scatter3d",
+      mode = "markers",
+      color = "lightgray",
+      marker = list(size = 3),
+      name = "Full space",
+      visible = "legendonly"
+    ) %>%
+    layout(
+      title = list(
+        text = fulltext
+        )
+    ) 
+    #layout(title = paste0("actual coverage:", cov))
+  return(pp)
+}
+p1<- plot.corspace(R1, B=1000, alpha= 0.05, asy.n= 2e5, main="Identity Matrix")
+p2<- plot.corspace(R2, B=1000, alpha= 0.05, asy.n= 2e5, main="eta= 8")
+p3<- plot.corspace(R3, B=1000, alpha= 0.05, asy.n= 2e5, main="eta= 1")
+p4<- plot.corspace(R4, B=1000, alpha= 0.05, asy.n= 2e5, main="eta= 0.2")
+
+pacman::p_load(htmlwidgets)
+saveWidget(p1, "docs/plots/p1.html", selfcontained = FALSE)
+saveWidget(p2, "docs/plots/p2.html", selfcontained = FALSE)
+saveWidget(p3, "docs/plots/p3.html", selfcontained = FALSE)
+saveWidget(p4, "docs/plots/p4.html", selfcontained = FALSE)
