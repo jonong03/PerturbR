@@ -373,12 +373,6 @@ Notes:
 
 1.  Previously discuss a sphere-cloud approach, I modified it to the "wald-cloud" (approach 2) above, this is to consider the covariance of correlation under null.
 
-## Visualization
-
-::: {style="display:grid; grid-template-columns: 1fr; gap: 12px;"}
-<iframe src="plots/p1.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p2.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p3.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p4.html" width="100%" height="520" style="border:0;"></iframe>
-:::
-
 # Simulation:
 
 ## Simulation 1: Nominal vs Actual Coverage
@@ -391,11 +385,11 @@ $$
 
 Frequentist interpretation of confidence region: Over repeated samples, the confidence region (which is random, depends on sample) contains the fixed true $\rho$ with probability $1-\alpha$.
 
-> **Simulation Flow: Monte Carlo estimate of coverage of** $CR_{1-\alpha}(\hat{\rho})$
+> **Simulation Flow: Monte Carlo estimate of coverage of** $C_{1-\alpha}(\hat{\rho})$
 >
 > **Input:** $\rho_0$, $\Psi(\rho_0)$, sample size $n$, significance level $\alpha$, number of replicates $B$
 >
-> **Output:** Coverage level $CR_{1-\alpha}(\hat\rho)$
+> **Output:** Coverage level $C_{1-\alpha}(\hat\rho)$
 >
 > $H \leftarrow 0$
 >
@@ -411,15 +405,27 @@ Frequentist interpretation of confidence region: Over repeated samples, the conf
 >
 > **return** $H /B$ (actual coverage)
 
-This simulation repeats over different $\rho_0$'s, which are uniformly sampled from the rlkj distribution by under different $\eta$. sample size $n$ is set to $1e6$ to mirror aysmptotic-ness, $\alpha = 0.05, 0.10$, $B=  200$.
+This simulation repeats over different $\rho_0$'s sampled from the rlkj distribution under different $\eta$. Sample size $n$ is set to $1e6$ to mirror aysmptotic-ness, $\alpha = 0.05, 0.10$, $B=  200$, and repeated over 50 different $\rho_0$.
 
 ### Output
 
+### Visualization
+
+What is shown here: Simulation of 4 different $R_0$.
+
+Given a $R_0$ (red dot), generate 1000 random samples, and run wald-test at $\alpha=0.05$.
+
+::: {style="display:grid; grid-template-columns: 1fr; gap: 12px;"}
+<iframe src="plots/p1.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p2.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p3.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p4.html" width="100%" height="520" style="border:0;"></iframe>
+:::
+
 ## Simulation 2: CDA Power Analysis based on correlation perturbation
+
+Basically, CDA (PC-algorithm) on Simulation 1
 
 ## Simulation 3: The \$100M question - Part 1 (focus on $R$ )
 
-**Setting**: There exist an unknown truth: $R_{halo}$ , we observe $\hat{R}$ in real world, and we make perturbations of $\hat{r}$: $\hat{R}^{\prime}$.
+**Setting**: There exist an unknown truth: $R_{halo}$ , we observe $\hat{R}$ in real world, and we make perturbations on $\hat{R}$: $\hat{R}^{\prime}$.
 
 **Question**:
 
