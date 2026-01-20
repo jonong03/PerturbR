@@ -329,7 +329,13 @@ Note:
 <iframe src="plots/p1.html" width="90%" height="480" style="border:0;"></iframe> <iframe src="plots/p2.html" width="90%" height="480" style="border:0;"></iframe> <iframe src="plots/p3.html" width="90%" height="480" style="border:0;"></iframe> <iframe src="plots/p4.html" width="90%" height="480" style="border:0;"></iframe>
 :::
 
-<iframe src="plots/p1.html" width="100%" height="650" style="border:0;">
+<iframe src="plots/p1.html" width="100%" height="480" style="border:0;">
+
+<iframe src="plots/p2.html" width="100%" height="480" style="border:0;">
+
+<iframe src="plots/p3.html" width="100%" height="480" style="border:0;">
+
+<iframe src="plots/p4.html" width="100%" height="480" style="border:0;">
 
 # Generating random samples around $\rho_0$
 
