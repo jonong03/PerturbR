@@ -284,7 +284,7 @@ $$
 
 When $\rho$ is unknown, we use plug-in estimate $\hat\rho$.
 
-<span style="color: red;"> Can we prove that $\hat\Psi \xrightarrow{p} \Psi$ ?</span>
+<span style="color: red;"> Need to prove $\hat\Psi \xrightarrow{p} \Psi$, haven't spent time on this </span>
 
 ## Confidence region of $\rho$
 
@@ -364,6 +364,12 @@ My intuition on this:
 
 $c$ sets the $1-\alpha$ chi-square cut-off that determines the confidence ellipsoid boundary; $r$ distributes a random radius (between (0,1)) uniformly in all $p$-dimension within the ellipsoid; $Z$ is the standard way to generate uniform random directions on a unit sphere. Geometrically, multiplying these three objects to $L$is like rotating and scaling the ellipsoid.
 
+### Visualization of random uniform samples
+
+::: {style="display:grid; grid-template-columns: 1fr; gap: 12px;"}
+<iframe src="plots/p1unif.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p2unif.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p3unif.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p4unif.html" width="100%" height="520" style="border:0;"></iframe>
+:::
+
 Why don't we use the first approach (Generate data then compute correlation) ?
 
 1.  Making extra assumption: This approach assumes the underlying data distribution, which seems to be unnecessary here in our theory. We only need $\hat\rho$ to be normal (asymptotically).
@@ -430,7 +436,7 @@ out[fisherz==TRUE] %>%
 
 ### Visualization
 
-What is shown here: Simulation of 4 different $R_0$.
+What is shown here: Simulation of 4 different $R_0$'s from Simulation 1A.
 
 Given a $R_0$ (red dot), generate 1000 random samples, and run wald-test at $\alpha=0.05$.
 
@@ -440,7 +446,35 @@ Given a $R_0$ (red dot), generate 1000 random samples, and run wald-test at $\al
 
 ## Simulation 2: CDA Power Analysis based on correlation perturbation
 
-Basically, CDA (PC-algorithm) on Simulation 1
+Goal: Relationship between $C_{1-\alpha}(\rho_0)$ and causal discovery performance of $\rho_0$. (need to break down a little more).
+
+> **Simulation Flow:**
+>
+> **Input:** $\rho_0$, sample size $n$, $\alpha_1$ for $C_{1-\alpha}$, $\alpha_2$ for conditional independent tests, number of replicates $B$
+>
+> **Output:** Performance of CDA
+
+> Estimate Adjacency Matrix $G_0$ of $\rho_0$ with $n$, using PC-alg
+>
+> **for** $b$ $\leftarrow$ 1 to $B$:
+>
+> 1.  Sample $\hat\rho^{(b)}$ inside $C_{1-\alpha}$ "uniformly"(?)
+>
+> 2.  Estimate $\hat{G}^{(b)}$ of $\hat\rho^{(b)}$ with $n$
+>
+> 3.  Benchmark $\hat{G}^{(b)}$ with $G_0$, summarize performance
+>
+> **return** CDA performance of each $\hat{G}^{(b)}$: TP/FP/FN/TN of Adjacency and Orientation
+>
+> Vary $\alpha_1$ , Fix $\alpha_2$, $n$
+
+<div>
+
+</div>
+
+I plan to introduce an "unobserved" layer in simulation 3 and 4, and benchmark perturbed samples against (1) the observed layer (should be similar to Sim2), (2) the unobserved layer.
+
+Sim3 will focus on $R$ object first, and Sim4 will focus on CDA.
 
 ## Simulation 3: The \$100M question - Part 1 (focus on $R$ )
 

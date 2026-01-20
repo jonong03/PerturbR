@@ -9,6 +9,28 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
   # pd_check : If TRUE, reject (return FALSE) when Rsample is not PD
   # pd_tol   : PD tolerance for smallest eigenvalue
   
+  asyCov.z <- function(R, asy.n= 10000) {
+    # R: untransformed correlation matrix
+    
+    rvec <- R[lower.tri(R)]
+    cov <- metaSEM::asyCov(R, n= asy.n)
+    
+    #denominator: 1-rho^2
+    #denominator[i,j] = (1-r_i^2)*(1-r_j^2)
+    weights <- 1 - rvec^2
+    denom_matrix <- outer(weights, weights)
+    
+    #Steiger defines psi = N * sigma
+    psi_matrix <- asy.n * cov
+    
+    #Transformation: Eq10 and Eq11
+    c_matrix <- psi_matrix / denom_matrix
+    zcov_matrix <- c_matrix / (asy.n-3)
+    diag(zcov_matrix)<- 1/ (asy.n-3)
+    
+    return(zcov_matrix)  
+  }
+  
   ## --- vectorize correlations ---
   Rpop_vec    <- Rpop[lower.tri(Rpop)]
   Rsample_vec <- Rsample[lower.tri(Rsample)]
@@ -29,7 +51,7 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
   
   Psi0 <- Psi* asy.n   # covariance when sample size = 1, use this to study eigenstructure
   
-  if(qr(Psi)$rank != ps) { return(c(distance=NA, df=NA, cricval=NA, sig=NA)) }
+  if(qr(Psi)$rank != ps) { return(c(T=NA, df=NA, cricval=NA, pval=NA, reject= NA)) }
   
   ## --- Mahalanobis distance ---
   distance = mahalanobis(x= sample_vec,center = center_vec,cov = Psi)
@@ -48,7 +70,7 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
 d= 4; n= 1e3
 R0<- rlkjcorr(1,K=d,eta=2)
 Rhat<- rlkjcorr(1,K=d,eta=2)
-wald.test(R0, Rhat)
+wald.test(R0, Rhat, fisherz= TRUE)
 
 
 # Generate Sample (Full Spread)
@@ -153,7 +175,7 @@ runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output="matrix"){
 }
 n=50000
 B=200
-R0<- R1<- rlkjcorr(1,K=d,eta=10)
+R1<- rlkjcorr(1,K=d,eta=0.2)
 Rb<- runifcloud(R1, n= n, B=B, output="matrix")
 out<- sapply(1:dim(Rb)[3], function(b) wald.test(R1, Rb[,,b], asy.n=n)) %>% t()
 mean(out[,5])
@@ -257,7 +279,85 @@ saveWidget(p3, "docs/plots/p3.html", selfcontained = FALSE)
 saveWidget(p4, "docs/plots/p4.html", selfcontained = FALSE)
 
 
+plot.corspace.unif<- function(R0, B=1000, alpha=0.15, asy.n=1e5, main=""){
+  r0_vech<- R_to_coords(R0)
+  
+  # Generate random samples
+  rhat <- runifcloud(R0, B=B, n=asy.n, alpha=alpha, output= "matrix")
+  rhat_vech <- t(sapply(1:B, function(b) R_to_coords(rhat[,,b])))
+  rhat_vech <- data.frame(rhat_vech)
+  colnames(rhat_vech)<- c("r12", "r13", "r23")
+  
+  # Perform Wald-test
+  wald.out<- sapply(1:B, function(b)
+    wald.test(Rpop= R0, Rsample = rhat[,,b], alpha = alpha, asy.n= asy.n)
+  )
+  outside.ellipsoid <- wald.out[5,]
+  cov= 1-mean(outside.ellipsoid)
+  
+  inside = rhat_vech[which(outside.ellipsoid==0),]
+  outside = rhat_vech[which(outside.ellipsoid==1),]
+  
+  N <- 3000
+  samp1 <- rlkjcorr(N, K = 3, eta = 1) #eta parameter represents density of sampling
+  df1 <- data.frame(r12=samp1[, 2, 1], r13=samp1[, 3, 1], r23=samp1[, 3, 2])
+  
+  title=main
+  subtitle=paste0("Actual Coverage:", cov)
+  fulltext= paste0(title,"<br><sup>", subtitle,"</sup>")
+  
+  pp<- plot_ly(
+    data = inside,
+    x = ~r12, y = ~r13, z = ~r23,
+    type = "scatter3d",
+    mode = "markers",
+    marker = list(size = 4),
+    name = "Inside samples"
+  ) %>%
+    add_trace(
+      data = outside,
+      x = ~r12, y = ~r13, z = ~r23,
+      type = "scatter3d",
+      mode = "markers",
+      color = "black",
+      marker = list(size = 4),
+      name = "Outside samples"
+    ) %>%
+    add_trace(
+      data = r0_vech, 
+      x = ~r12, y = ~r13, z = ~r23,
+      type = "scatter3d",
+      mode = "markers",
+      marker = list(size = 8, color = "red"),
+      name = "R0"
+    ) %>%
+    add_trace(
+      data = df1,
+      x = ~r12, y = ~r13, z = ~r23,
+      type = "scatter3d",
+      mode = "markers",
+      color = "lightgray",
+      marker = list(size = 3),
+      name = "Full space",
+      visible = "legendonly"
+    ) %>%
+    layout(
+      title = list(
+        text = fulltext
+      )
+    ) 
+  #layout(title = paste0("actual coverage:", cov))
+  return(pp)
+}
+p1unif<- plot.corspace.unif(R1, B=1000, alpha= 0.05, asy.n= 2e5, main="Identity Matrix")
+p2unif<- plot.corspace.unif(R2, B=1000, alpha= 0.05, asy.n= 2e5, main="eta= 8")
+p3unif<- plot.corspace.unif(R3, B=1000, alpha= 0.05, asy.n= 2e5, main="eta= 1")
+p4unif<- plot.corspace.unif(R4, B=1000, alpha= 0.05, asy.n= 2e5, main="eta= 0.2")
 
+saveWidget(p1, "docs/plots/p1unif.html", selfcontained = FALSE)
+saveWidget(p2, "docs/plots/p2unif.html", selfcontained = FALSE)
+saveWidget(p3, "docs/plots/p3unif.html", selfcontained = FALSE)
+saveWidget(p4, "docs/plots/p4unif.html", selfcontained = FALSE)
 # Simulation
 # ---- build parameter grid ----
 
@@ -267,7 +367,7 @@ alpha_vals <- c(0.05, 0.10)
 asy_n_vals <- c(1e6)
 iter_vals  <- 300
 nG         <- 50             # number of graphs / replicates of graphs
-fisherz    <- c(FALSE)
+fisherz    <- c(FALSE, TRUE)
 dimension  <- c(3, 5, 10)
 
 grid <- expand.grid(
@@ -329,7 +429,7 @@ simulate_coverage_joint <- function(R0, alpha = 0.05, asy.n = 10000, iter = 100,
 }
 grid.joint[eta==0.1 & alpha==0.05,]
 
-grid.joint[,{
+out<- grid.joint[,{
   qs <- quantile(coverage, c(0, .25, .5, .75, 1), na.rm = TRUE)
   .(
     Mean = sprintf("%.3f", mean(coverage, na.rm = TRUE)),
@@ -341,3 +441,99 @@ grid.joint[,{
     #Max  = sprintf("%.3f", qs[5])
   )
 }, by=.(eta, dimension, nParam, fisherz, asy.n, alpha)] 
+
+saveRDS(out, "docs/objects/sim1.rds")
+
+
+
+## CDA Sim
+getwd()
+source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/CDA/Scripts/Functions.R")
+source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/CDA/Scripts/EST/CDAfunctions.R")
+
+alpha1=0.1
+n0<- 1e6
+d<- 10
+iter=500
+
+R0 <- rlkjcorr(1, K=d, eta=0.2)
+fit_obj<- pcalg::pc(suffStat= list(C = R0, n = n0), indepTest = gaussCItest, p= d, alpha = as.numeric(0.05) )
+G0<- true_adj<- t(as(fit_obj, "matrix"))
+sum(G0)
+
+Rb<- runifcloud(R0, n= n0, B=iter, alpha= alpha)
+perf_Gb<-sapply(1:iter, function(b) est_pc(R=Rb[,,b], n=n0, alpha=alpha)) %>% t()
+apply(perf_Gb, 2, summary) %>% round(.,1)
+
+Gb<- lapply(1:iter, function(b){
+  fit_obj<- pcalg::pc(suffStat= list(C = Rb[,,b], n = n0), indepTest = gaussCItest, p= d, alpha = as.numeric(0.05) )
+  return( t(as(fit_obj, "matrix")) )
+})
+
+
+simulate_pc_performance <- function(R0, alpha, n0, iter, fisherz = FALSE, alpha2= 0.05) {
+  
+  d = nrow(R0)
+  # Baseline PC graph from R0 (treat R0 as population correlation)
+  fit0<- pcalg::pc(suffStat= list(C = R0, n = n0), indepTest = gaussCItest, p= d, alpha = as.numeric(alpha2) )
+  G0<- true_adj<- t(as(fit0, "matrix"))
+  edges_G0 <- sum(G0)
+  
+  # Generate cloud of correlations around R0
+  Rb <- tryCatch(
+    runifcloud(R0, n = n0, B = iter, alpha = alpha),
+    error = function(e) NA
+  )
+  
+  validB <- dim(Rb)[3]
+  
+  # Evaluate PC per cloud draw
+  perf_list <- sapply(seq_len(validB), function(b) {
+    out <- tryCatch(
+      est_pc(R = Rb[, , b], n = n0, alpha = alpha),
+      error = function(e) NA
+    )
+    out
+  })
+  
+  return(t(perf_list))
+}
+out1<- simulate_pc_performance(R0, alpha= 0.05, n0= n0, iter=200)
+apply(out1,2,summary)
+
+out2<- simulate_pc_performance(R0, alpha= 0.15, n0= n0, iter=200)
+apply(out2,2,summary)
+saveRDS(list(out1 = out1, out2 = out2), "docs/objects/pc_perf.rds")
+
+
+## Scale Up Sim
+
+####
+eta_vals   <- c(0.1, 1, 8)
+alpha_vals <- c(0.05, 0.10)
+asy_n_vals <- c(1e6)
+iter_vals  <- 300
+nG         <- 50             # number of graphs / replicates of graphs
+fisherz    <- c(FALSE, TRUE)
+dimension  <- c(5, 10)
+
+grid <- expand.grid(
+  eta   = eta_vals,
+  alpha = alpha_vals,
+  asy.n = asy_n_vals,
+  iter  = iter_vals,
+  nG     = seq_len(nG),
+  fisherz= fisherz, 
+  dimension = dimension,
+  KEEP.OUT.ATTRS = FALSE,
+  stringsAsFactors = FALSE
+)
+grid$nParam = grid$dimension * (grid$dimension -1)/2
+#grid$alpha = grid$alpha/grid$nParam
+base_seed <- 123
+grid$seed <- base_seed + seq_len(nrow(grid))
+grid$Rtarget <- lapply(seq_len(nrow(grid)), function(i) {
+  set.seed(grid$seed[i])
+  rlkjcorr(1, grid$dimension[i], eta = grid$eta[i])
+})
+
