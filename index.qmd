@@ -12,7 +12,7 @@ execute:
 ```{r}
 #| echo: false
 #devtools::install_github("rmcelreath/rethinking@slim")
-pacman::p_load(data.table, dplyr, plotly, rethinking)
+pacman::p_load(data.table, dplyr, plotly, rethinking, gt)
 ```
 
 # Goal
@@ -408,6 +408,25 @@ Frequentist interpretation of confidence region: Over repeated samples, the conf
 This simulation repeats over different $\rho_0$'s sampled from the rlkj distribution under different $\eta$. Sample size $n$ is set to $1e6$ to mirror aysmptotic-ness, $\alpha = 0.05, 0.10$, $B=  200$, and repeated over 50 different $\rho_0$.
 
 ### Output
+
+```{r}
+out <- readRDS("docs/objects/sim1.rds")
+out[fisherz==FALSE] %>%
+  gt() %>%
+  tab_header(
+    title = "Simulation Result 1A: using non-transformed distribution of rho",
+    subtitle = html("When alpha=0.05, mean should be 0.95 (1-alpha) <br> countNA refers to the number of R0 with rank-deficient covariance")
+  )
+```
+
+```{r}
+out[fisherz==TRUE] %>%
+  gt() %>%
+  tab_header(
+    title = "Simulation Result 1B: using fisher-z-transformed distribution of rho",
+    subtitle = html("When alpha=0.05, mean should be 0.95 (1-alpha) <br> countNA refers to the number of R0 with rank-deficient covariance")
+  )
+```
 
 ### Visualization
 

@@ -1,3 +1,4 @@
+pacman::p_load(metaSEM, dplyr, data.table, mvtnorm,rethinking, future.apply, parallel, parallelly)
 wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FALSE) {
   # Rpop     : Target (true) correlation matrix
   # Rsample  : Estimated correlation matrix
@@ -44,8 +45,7 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
   return(out)
 }
 
-d= 4
-n= 1e3
+d= 4; n= 1e3
 R0<- rlkjcorr(1,K=d,eta=2)
 Rhat<- rlkjcorr(1,K=d,eta=2)
 wald.test(R0, Rhat)
@@ -60,7 +60,10 @@ rwaldcloud<- function(R0, n= 1e5, B=1, output="matrix"){
   
   # Eigen Decomposition and check if R0 (and Psi0) can be decomposed
   eig<- eigen(Psi0)
-  if(!all(eig$values > 0)) {return("Covariance of R0 is not PSD")}
+  if(qr(Psi0)$rank != ps) {
+    return(stop("Error: Covariance of R0 is not PSD"))
+    
+    }
   U<- eig$vectors
   D<- diag(ps)
   diag(D)<- eig$values
@@ -103,7 +106,7 @@ mean(out[,5])
 
 
 # Generate Sample (Uniform within boundary)
-rwaldcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output="matrix"){
+runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output="matrix"){
   r0 <- R0[lower.tri(R0)]
   Psi0<- metaSEM::asyCov(R0, n = 1)
   d<- ncol(R0)
@@ -151,10 +154,10 @@ rwaldcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output="matrix"){
 n=50000
 B=200
 R0<- R1<- rlkjcorr(1,K=d,eta=10)
-Rb<- rwaldcloud(R1, n= n, B=B, output="matrix")
+Rb<- runifcloud(R1, n= n, B=B, output="matrix")
 out<- sapply(1:dim(Rb)[3], function(b) wald.test(R1, Rb[,,b], asy.n=n)) %>% t()
 mean(out[,5])
-
+head(out)
 
 
 # plotly
@@ -252,3 +255,89 @@ saveWidget(p1, "docs/plots/p1.html", selfcontained = FALSE)
 saveWidget(p2, "docs/plots/p2.html", selfcontained = FALSE)
 saveWidget(p3, "docs/plots/p3.html", selfcontained = FALSE)
 saveWidget(p4, "docs/plots/p4.html", selfcontained = FALSE)
+
+
+
+# Simulation
+# ---- build parameter grid ----
+
+####
+eta_vals   <- c(0.1, 1, 8)
+alpha_vals <- c(0.05, 0.10)
+asy_n_vals <- c(1e6)
+iter_vals  <- 300
+nG         <- 50             # number of graphs / replicates of graphs
+fisherz    <- c(FALSE)
+dimension  <- c(3, 5, 10)
+
+grid <- expand.grid(
+  eta   = eta_vals,
+  alpha = alpha_vals,
+  asy.n = asy_n_vals,
+  iter  = iter_vals,
+  nG     = seq_len(nG),
+  fisherz= fisherz, 
+  dimension = dimension,
+  KEEP.OUT.ATTRS = FALSE,
+  stringsAsFactors = FALSE
+)
+grid$nParam = grid$dimension * (grid$dimension -1)/2
+#grid$alpha = grid$alpha/grid$nParam
+base_seed <- 123
+grid$seed <- base_seed + seq_len(nrow(grid))
+grid$Rtarget <- lapply(seq_len(nrow(grid)), function(i) {
+  set.seed(grid$seed[i])
+  rlkjcorr(1, grid$dimension[i], eta = grid$eta[i])
+})
+simulate_coverage_joint <- function(R0, alpha = 0.05, asy.n = 10000, iter = 100, fisherz = FALSE) {
+  
+  Rb <- tryCatch(
+    rwaldcloud(R0, n = asy.n, B = iter, output = "matrix"),
+    error = function(e) NA
+  )
+  
+  # If rwaldcloud failed, return NA
+  if (all(is.na(Rb))) return(NA_real_)
+  
+  validB <- dim(Rb)[3]
+  out <- sapply(1:validB, function(b) { wald.test(R0, Rb[, , b], asy.n = asy.n, alpha= alpha)}) %>% t()
+  
+  cov <- 1 - mean(out[, 5], na.rm = TRUE)
+  return(cov)
+}
+
+
+
+{
+  plan(multisession, workers = max(1, parallelly::availableCores()- 1))
+  res_joint <- future_sapply(seq_len(nrow(grid)), function(i) {
+    res <- simulate_coverage_joint(
+      R0 = grid$Rtarget[[i]],
+      alpha   = grid$alpha[i],
+      asy.n   = grid$asy.n[i],
+      iter    = grid$iter[i],
+      fisherz = as.logical(grid$fisherz[i])
+    )
+    #res.out= rowMeans(res, na.rm=TRUE)
+    return(res) 
+  }, future.seed = TRUE)
+  grid.joint<- as.data.table(grid)
+  grid.joint<- cbind(grid.joint, coverage= res_joint)
+  grid.joint[,Rtarget:= NULL]
+  
+  plan(sequential)
+}
+grid.joint[eta==0.1 & alpha==0.05,]
+
+grid.joint[,{
+  qs <- quantile(coverage, c(0, .25, .5, .75, 1), na.rm = TRUE)
+  .(
+    Mean = sprintf("%.3f", mean(coverage, na.rm = TRUE)),
+    #Min  = sprintf("%.3f", qs[1]),
+    Q1   = sprintf("%.3f", qs[2]),
+    #Q2   = sprintf("%.3f", qs[3]),
+    Q3   = sprintf("%.3f", qs[4]),
+    countNA = sum(is.na(coverage))
+    #Max  = sprintf("%.3f", qs[5])
+  )
+}, by=.(eta, dimension, nParam, fisherz, asy.n, alpha)] 
