@@ -368,6 +368,10 @@ Notes:
 
 ### Visualization
 
+::: {style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;"}
+<iframe src="plots/p1.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p2.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p3.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p4.html" width="100%" height="520" style="border:0;"></iframe>
+:::
+
 # Generating uniform samples inside confidence region of $\rho_0$ 
 
 The goal is to generate **uniform** and **random** samples **within** $C_{1-\alpha}(\rho_0)$ with guarantee: $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho_0)^T\Psi^{-1}(\hat{\rho} - \rho_0)\ \leq \chi^{2}_{p, 1-\alpha} \}$
