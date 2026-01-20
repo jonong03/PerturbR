@@ -411,7 +411,7 @@ Goal: To assess whether the empirical distribution of the simulated Wald test st
 
 The histogram shows the **empirical distribution of the observed test statistics** $T_b$ from simulation, the red curve shows the **theoretical** $\chi^2$ density under $H_0$​.
 
-\![\](plots/teststatistic_distribution.png)
+![](docs/plots/teststatistic_distribution.png){fig-align="center"}
 
 ## Simulation 2: Nominal vs Actual Coverage
 
