@@ -1,3 +1,5 @@
+rm(list=ls());gc()
+set.seed(123)
 pacman::p_load(metaSEM, dplyr, data.table, mvtnorm,rethinking, future.apply, parallel, parallelly)
 wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FALSE) {
   # Rpop     : Target (true) correlation matrix
@@ -66,13 +68,6 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
   ## --- ellipsoid membership ---
   return(out)
 }
-
-d= 4; n= 1e3
-R0<- rlkjcorr(1,K=d,eta=2)
-Rhat<- rlkjcorr(1,K=d,eta=2)
-wald.test(R0, Rhat, fisherz= TRUE)
-
-
 # Generate Sample (Full Spread)
 rwaldcloud<- function(R0, n= 1e5, B=1, output="matrix"){
   r0 <- R0[lower.tri(R0)]
@@ -85,7 +80,7 @@ rwaldcloud<- function(R0, n= 1e5, B=1, output="matrix"){
   if(qr(Psi0)$rank != ps) {
     return(stop("Error: Covariance of R0 is not PSD"))
     
-    }
+  }
   U<- eig$vectors
   D<- diag(ps)
   diag(D)<- eig$values
@@ -104,7 +99,7 @@ rwaldcloud<- function(R0, n= 1e5, B=1, output="matrix"){
   # Check which is PSD (TRUE)
   is.psd<- sapply(1:B, function(b) all(eigen(Rhat[,,b])$values>0))
   non.psd.count<- sum(!is.psd)
-
+  
   cat("non-PSD sample count:", non.psd.count, "\n")
   
   if(output=="matrix"){
@@ -112,21 +107,8 @@ rwaldcloud<- function(R0, n= 1e5, B=1, output="matrix"){
   } else{
     return(t(rhat[,is.psd]))
   }
-    
+  
 }
-
-d=3
-R1<- rlkjcorr(1,K=d,eta=1)
-B=1000
-Rb<- rwaldcloud(R1, n= 1e5, B=B, output="matrix")
-out<- sapply(1:B, function(b) wald.test(R1, Rb[,,b], asy.n=1e5)) %>% t()
-mean(out[,5])
-
-Rb1<- lapply(1:B, function(i) cor(mvtnorm::rmvnorm(1e5, sigma = R1)))
-out<- sapply(1:B, function(b) wald.test(R1, Rb1[[b]], asy.n=1e5)) %>% t()
-mean(out[,5])
-
-
 # Generate Sample (Uniform within boundary)
 runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output="matrix"){
   r0 <- R0[lower.tri(R0)]
@@ -173,13 +155,39 @@ runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output="matrix"){
     return(t(rhat_vech[,is.psd]))
   }
 }
-n=50000
-B=200
+
+d=10; n= 1e3
+R1<- rlkjcorr(1,K=d,eta=2)
+Rhat<- rlkjcorr(1,K=d,eta=2)
+wald.test(R1, Rhat, fisherz= TRUE)
+
+B=1000
+Rb<- rwaldcloud(R1, n= 1e5, B=B, output="matrix")
+out<- sapply(1:B, function(b) wald.test(R1, Rb[,,b], asy.n=1e5)) %>% t()
+mean(out[,5])
+
+# Plot density
+p=d*(d-1)/2
+x= out[,1]
+hist(x, breaks = 30, probability = TRUE, main = "Histogram with Chi-square curve",xlab = "Wald-Statistic")
+curve(dchisq(x, df= p),  add = TRUE, col = "red", lwd = 2)
+
+
+
+
+Rb1<- lapply(1:B, function(i) cor(mvtnorm::rmvnorm(1e5, sigma = R1)))
+out<- sapply(1:B, function(b) wald.test(R1, Rb1[[b]], asy.n=1e5)) %>% t()
+mean(out[,5])
+hist(out[,1])
+
+
+
+
+
 R1<- rlkjcorr(1,K=d,eta=0.2)
 Rb<- runifcloud(R1, n= n, B=B, output="matrix")
 out<- sapply(1:dim(Rb)[3], function(b) wald.test(R1, Rb[,,b], asy.n=n)) %>% t()
 mean(out[,5])
-head(out)
 
 
 # plotly
@@ -354,10 +362,11 @@ p2unif<- plot.corspace.unif(R2, B=1000, alpha= 0.05, asy.n= 2e5, main="eta= 8")
 p3unif<- plot.corspace.unif(R3, B=1000, alpha= 0.05, asy.n= 2e5, main="eta= 1")
 p4unif<- plot.corspace.unif(R4, B=1000, alpha= 0.05, asy.n= 2e5, main="eta= 0.2")
 
-saveWidget(p1, "docs/plots/p1unif.html", selfcontained = FALSE)
-saveWidget(p2, "docs/plots/p2unif.html", selfcontained = FALSE)
-saveWidget(p3, "docs/plots/p3unif.html", selfcontained = FALSE)
-saveWidget(p4, "docs/plots/p4unif.html", selfcontained = FALSE)
+saveWidget(p1unif, "docs/plots/p1unif.html", selfcontained = FALSE)
+saveWidget(p2unif, "docs/plots/p2unif.html", selfcontained = FALSE)
+saveWidget(p3unif, "docs/plots/p3unif.html", selfcontained = FALSE)
+saveWidget(p4unif, "docs/plots/p4unif.html", selfcontained = FALSE)
+
 # Simulation
 # ---- build parameter grid ----
 
@@ -456,7 +465,7 @@ n0<- 1e6
 d<- 10
 iter=500
 
-R0 <- rlkjcorr(1, K=d, eta=0.2)
+R0 <- rlkjcorr(1, K=d, eta=3)
 fit_obj<- pcalg::pc(suffStat= list(C = R0, n = n0), indepTest = gaussCItest, p= d, alpha = as.numeric(0.05) )
 G0<- true_adj<- t(as(fit_obj, "matrix"))
 sum(G0)
@@ -475,7 +484,7 @@ simulate_pc_performance <- function(R0, alpha, n0, iter, fisherz = FALSE, alpha2
   
   d = nrow(R0)
   # Baseline PC graph from R0 (treat R0 as population correlation)
-  fit0<- pcalg::pc(suffStat= list(C = R0, n = n0), indepTest = gaussCItest, p= d, alpha = as.numeric(alpha2) )
+  fit0<- pcalg::pc(suffStat= list(C = R0, n = n0), indepTest = gaussCItest, p= d, alpha = alpha2 )
   G0<- true_adj<- t(as(fit0, "matrix"))
   edges_G0 <- sum(G0)
   
@@ -490,7 +499,7 @@ simulate_pc_performance <- function(R0, alpha, n0, iter, fisherz = FALSE, alpha2
   # Evaluate PC per cloud draw
   perf_list <- sapply(seq_len(validB), function(b) {
     out <- tryCatch(
-      est_pc(R = Rb[, , b], n = n0, alpha = alpha),
+      est_pc(R = Rb[, , b], n = n0, alpha = alpha2),
       error = function(e) NA
     )
     out
@@ -498,11 +507,14 @@ simulate_pc_performance <- function(R0, alpha, n0, iter, fisherz = FALSE, alpha2
   
   return(t(perf_list))
 }
-out1<- simulate_pc_performance(R0, alpha= 0.05, n0= n0, iter=200)
+
+R0 <- rlkjcorr(1, K=12, eta=0.6)
+out1<- simulate_pc_performance(R0, alpha= 0.05, n0= n0, iter=5)
 apply(out1,2,summary)
 
-out2<- simulate_pc_performance(R0, alpha= 0.15, n0= n0, iter=200)
+out2<- simulate_pc_performance(R0, alpha= 0.01, n0= n0, iter=5)
 apply(out2,2,summary)
+
 saveRDS(list(out1 = out1, out2 = out2), "docs/objects/pc_perf.rds")
 
 

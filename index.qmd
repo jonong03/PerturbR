@@ -379,9 +379,41 @@ Notes:
 
 1.  Previously discuss a sphere-cloud approach, I modified it to the "wald-cloud" (approach 2) above, this is to consider the covariance of correlation under null.
 
+2.  Z-transformation on $\rho$ to stabilize variance. (not included yet)
+
+3.  When $\Psi$ is rank-deficient, we discussed a potential way to solve it is to only sample in the rank-reduced space. In this case, degree of freedom will be reduced. Also, is it still chi-square?
+
+# Connection between $\rho$ and causal discovery
+
+(Need more structural thoughts here...)
+
 # Simulation:
 
-## Simulation 1: Nominal vs Actual Coverage
+## Simulation 1: Empirical distribution of the observed test statistic (mahalanobis distance/ wald).
+
+Goal: To assess whether the empirical distribution of the simulated Wald test statistic matches the theoretical $\chi^2$ density under $H_0$​, which validates the chi-square calibration of the procedure, including Type-1 error and coverage.
+
+> **Simulation Flow:**
+>
+> **Input:** $\rho_0$, $\Psi(\rho_0)$, sample size $n$, significance level $\alpha$, number of replicates $B$
+>
+> **Output:** Test statistic $T_b$
+>
+> **for** $b$ $\leftarrow$ 1 to $B$:
+>
+> 1.  Sample $\hat\rho^{(b)}$ from Wald-cloud (or equivalently, normal distribution)
+>
+> 2.  Compute covariance $\hat\Psi(\hat\rho^{(b)})$
+>
+> 3.  Compute test-statistic (mahalanobis distance): $T_b \leftarrow n(\hat{\rho}^{(b)}-\rho_{0})^{\top}[\hat\Psi(\rho_{0})]^{-1}(\hat{\rho}^{(b)}-\rho_{0})$
+>
+> **return** $T_b$
+
+The histogram shows the **empirical distribution of the observed test statistics** $T_b$ from simulation, the red curve shows the **theoretical** $\chi^2$ density under $H_0$​.
+
+\![\](plots/teststatistic_distribution.png)
+
+## Simulation 2: Nominal vs Actual Coverage
 
 Goal is to validate:
 
@@ -405,7 +437,7 @@ Frequentist interpretation of confidence region: Over repeated samples, the conf
 >
 > 2.  Compute covariance $\hat\Psi(\hat\rho^{(b)})$
 >
-> 3.  Compute mahalanobis distance $T_b \leftarrow n(\hat{\rho}^{(b)}-\rho_{0})^{\top}[\hat\Psi(\rho_{0})]^{-1}(\hat{\rho}^{(b)}-\rho_{0})$
+> 3.  Compute test-statistic (mahalanobis distance): $T_b \leftarrow n(\hat{\rho}^{(b)}-\rho_{0})^{\top}[\hat\Psi(\rho_{0})]^{-1}(\hat{\rho}^{(b)}-\rho_{0})$
 >
 > 4.  if $T_b \leq \chi^2_{p,1-\alpha}$, then $H \leftarrow H+1$ ;
 >
@@ -444,7 +476,7 @@ Given a $R_0$ (red dot), generate 1000 random samples, and run wald-test at $\al
 <iframe src="plots/p1.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p2.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p3.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p4.html" width="100%" height="520" style="border:0;"></iframe>
 :::
 
-## Simulation 2: CDA Power Analysis based on correlation perturbation
+## Simulation 3: CDA Power Analysis based on correlation perturbation
 
 Goal: Relationship between $C_{1-\alpha}(\rho_0)$ and causal discovery performance of $\rho_0$. (need to break down a little more).
 
@@ -472,11 +504,11 @@ Goal: Relationship between $C_{1-\alpha}(\rho_0)$ and causal discovery performan
 
 </div>
 
-I plan to introduce an "unobserved" layer in simulation 3 and 4, and benchmark perturbed samples against (1) the observed layer (should be similar to Sim2), (2) the unobserved layer.
+I plan to introduce an "unobserved" layer in simulations 4 and 5, and benchmark perturbed samples against (1) the observed layer (should be similar to Sim2), (2) the unobserved layer.
 
-Sim3 will focus on $R$ object first, and Sim4 will focus on CDA.
+Sim4 will focus on $R$ object first, and Sim5 will focus on CDA.
 
-## Simulation 3: The \$100M question - Part 1 (focus on $R$ )
+## Simulation 4: The \$100M question - Part 1 (focus on $R$ )
 
 **Setting**: There exist an unknown truth: $R_{halo}$ , we observe $\hat{R}$ in real world, and we make perturbations on $\hat{R}$: $\hat{R}^{\prime}$.
 
@@ -515,4 +547,4 @@ Note:
 1.  used plug-in estimate $\hat\Psi(\hat\rho^{(bk)})$ in $T^*_{bk}$ because $\Psi(\rho_{halo})$ is unobserved
 2.  
 
-## Simulation 4: The \$100M question - Part 2 (focus on $G$ )
+## Simulation 5: The \$100M question - Part 2 (focus on $G$ )

@@ -9,6 +9,28 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
   # pd_check : If TRUE, reject (return FALSE) when Rsample is not PD
   # pd_tol   : PD tolerance for smallest eigenvalue
   
+  asyCov.z <- function(R, asy.n= 10000) {
+    # R: untransformed correlation matrix
+    
+    rvec <- R[lower.tri(R)]
+    cov <- metaSEM::asyCov(R, n= asy.n)
+    
+    #denominator: 1-rho^2
+    #denominator[i,j] = (1-r_i^2)*(1-r_j^2)
+    weights <- 1 - rvec^2
+    denom_matrix <- outer(weights, weights)
+    
+    #Steiger defines psi = N * sigma
+    psi_matrix <- asy.n * cov
+    
+    #Transformation: Eq10 and Eq11
+    c_matrix <- psi_matrix / denom_matrix
+    zcov_matrix <- c_matrix / (asy.n-3)
+    diag(zcov_matrix)<- 1/ (asy.n-3)
+    
+    return(zcov_matrix)  
+  }
+  
   ## --- vectorize correlations ---
   Rpop_vec    <- Rpop[lower.tri(Rpop)]
   Rsample_vec <- Rsample[lower.tri(Rsample)]
@@ -29,7 +51,7 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
   
   Psi0 <- Psi* asy.n   # covariance when sample size = 1, use this to study eigenstructure
   
-  if(qr(Psi)$rank != ps) { return(c(distance=NA, df=NA, cricval=NA, sig=NA)) }
+  if(qr(Psi)$rank != ps) { return(c(T=NA, df=NA, cricval=NA, pval=NA, reject= NA)) }
   
   ## --- Mahalanobis distance ---
   distance = mahalanobis(x= sample_vec,center = center_vec,cov = Psi)
@@ -53,7 +75,10 @@ rwaldcloud<- function(R0, n= 1e5, B=1, output="matrix"){
   
   # Eigen Decomposition and check if R0 (and Psi0) can be decomposed
   eig<- eigen(Psi0)
-  if(!all(eig$values > 0)) {return("Covariance of R0 is not PSD")}
+  if(qr(Psi0)$rank != ps) {
+    return(stop("Error: Covariance of R0 is not PSD"))
+    
+  }
   U<- eig$vectors
   D<- diag(ps)
   diag(D)<- eig$values
