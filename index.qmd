@@ -449,7 +449,7 @@ Frequentist interpretation of confidence region: Over repeated samples, the conf
 
 For each $\rho_0$ (sample from a fixed $\eta$), I generated $B=300$ perturbed samples and evaluate the actual coverage under nominal levels $\alpha \in {0.05, 0.10}$. Sample size $n$ is fixed at 1e6 to approximate the asymptotic assumption. For each $\eta$, $G$=50 $\rho_0$s were sampled.
 
-### 
+countNA: if a $\Psi(\rho_0)$ is rank-deficient, that means the existing approach does not allow us to sample under the null distribution, therefore we skip this $\rho_0$ sample. When $\eta=0.1$, samples are close to the boundary, and more than half of them have rank-deficient covariance. However, when it is not rank-deficient, the coverage behaves normal.
 
 ```{r}
 out <- readRDS("docs/objects/sim1.rds")
@@ -457,7 +457,7 @@ out[fisherz==FALSE] %>%
   gt() %>%
   tab_header(
     title = "Simulation Result 1A: using non-transformed distribution of rho",
-    subtitle = html("Mean, Q1, Q3 summarize the actual coverage across the 50 sampled $\rho_0$s<br> countNA refers to the number of R0 with rank-deficient covariance")
+    subtitle = html("Mean, Q1, Q3 summarize the actual coverage across the 50 sampled R0s<br> countNA refers to the number of R0 with rank-deficient covariance")
   )
 ```
 
@@ -466,7 +466,7 @@ out[fisherz==TRUE] %>%
   gt() %>%
   tab_header(
     title = "Simulation Result 1B: using fisher-z-transformed distribution of rho",
-    subtitle = html("Mean, Q1, Q3 summarize the actual coverage across the 50 sampled $\rho_0$s<br> countNA refers to the number of R0 with rank-deficient covariance")
+    subtitle = html("Mean, Q1, Q3 summarize the actual coverage across the 50 sampled R0s<br> countNA refers to the number of R0 with rank-deficient covariance")
   )
 ```
 
