@@ -326,7 +326,7 @@ Note:
 ### Visualization
 
 ::: {style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;"}
-<iframe src="docs/figures/p1.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="docs/figures/p2.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="docs/figures/p3.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="docs/figures/p4.html" width="100%" height="520" style="border:0;"></iframe>
+<iframe src="plots/p1.html" width="90%" height="480" style="border:0;"></iframe> <iframe src="plots/p2.html" width="90%" height="480" style="border:0;"></iframe> <iframe src="plots/p3.html" width="90%" height="480" style="border:0;"></iframe> <iframe src="plots/p4.html" width="90%" height="480" style="border:0;"></iframe>
 :::
 
 # Generating random samples around $\rho_0$
@@ -366,11 +366,7 @@ Notes:
 
 1.  Previously discuss a sphere-cloud approach, I modified it to the "wald-cloud"(approach 2) above, this is to consider the covariance of correlation under null.
 
-### Visualization
-
-::: {style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px;"}
-<iframe src="plots/p1.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p2.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p3.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p4.html" width="100%" height="520" style="border:0;"></iframe>
-:::
+### 
 
 # Generating uniform samples inside confidence region of $\rho_0$ 
 
