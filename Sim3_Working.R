@@ -1,8 +1,8 @@
 # PerturbR Sim3
 rm(list=ls()); gc()
-pacman::p_load(metaSEM, dplyr, data.table, mvtnorm, rethinking, future.apply, parallel, parallelly, reticulate, pcalg)
+pacman::p_load(metaSEM, dplyr, data.table, mvtnorm, rethinking, future.apply, parallel, parallelly, reticulate, pcalg, ggplot2)
 use_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR-CDA/.venv/bin/python", required = TRUE)
-py_config()
+py_config() 
 
 source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR/docs/WorkingCode/Functions.R")  # Wald cloud
 source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/CDA/Scripts/Functions.R")  # Base CDA Functions
@@ -12,16 +12,16 @@ source_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1-
 source_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR-CDA/boss_py.py")
 
 
-# One time Simulation -----------------------------------------------------
+# On time Simulation -----------------------------------------------------
 p= 20L; ad= 3L; asy.n= 20000L; ITER=300L
 ps= p*(p-1)/2
-alpha1<- 0.05   # alpha1= 1 minus coveragelevel
+#alpha1<- 0.05   # alpha1= 1 minus coveragelevel
 alpha2<- 0.05   # used in CI test
 {
   # Truth Layer:
-  Target = er_dag_py(p=p, ad=ad, n= asy.n, K=ITER)  # Consists of K data sets
+  Target = er_dag_py(p=p, ad=ad, n= asy.n, K=1L)  # Consists of K data sets
   G0 <- Target$G
-  print(G0)
+  #print(G0)
   R0 <- Target$R
   X<- Target$X[1,,]   # The only observed data
   
@@ -76,6 +76,10 @@ alpha2<- 0.05   # used in CI test
     perf_ort.bootstrap<- sapply(Ghat.bootstrap, function(ghat) (eval_cda(true_adj=t(G0), est_adj=t(ghat))$metric.orient)) 
     
     # For PC plotting
+    my_scale<- scale_x_discrete(
+      labels = c("bootstrap" = "Bootstrap", "unifcloud_0.01" = "99% Cloud", "unifcloud_0.05" = "95% Cloud", 
+                 "unifcloud_0.1" = "90% Cloud", "unifcloud_0.2" = "80% Cloud")
+    )
     {
       df_adjacency_accuracy= bind_rows(
         #waldcloud= data.frame(value= perf.waldcloud[1,], group="waldcloud"),
@@ -118,22 +122,26 @@ alpha2<- 0.05   # used in CI test
         geom_boxplot() +
         ggtitle("PC: Adjacency Accuracy")+
         theme_minimal()+
-        theme(axis.title.x = element_blank())
+        theme(axis.title.x = element_blank())+
+        my_scale
       g_adj_sen<- ggplot2::ggplot(df_adjacency_sensitivity, aes(x = group, y = value)) +
         geom_boxplot() +
         ggtitle("PC: Adjacency Sensitivity")+
         theme_minimal()+
-        theme(axis.title.x = element_blank())
+        theme(axis.title.x = element_blank())+
+        my_scale
       g_ort_acc<- ggplot2::ggplot(df_orientation_accuracy, aes(x = group, y = value)) +
         geom_boxplot() +
         ggtitle("PC: Orientation Accuracy")+
         theme_minimal()+
-        theme(axis.title.x = element_blank())
+        theme(axis.title.x = element_blank())+
+        my_scale
       g_ort_sen<- ggplot2::ggplot(df_orientation_sensitivity, aes(x = group, y = value)) +
         geom_boxplot() +
         ggtitle("PC: Orientation Sensitivity")+
         theme_minimal()+
-        theme(axis.title.x = element_blank())
+        theme(axis.title.x = element_blank())+
+        my_scale
       ggpc<- ggpubr::ggarrange(g_adj_acc, g_adj_sen,g_ort_acc, g_ort_sen,ncol = 2, nrow=2)
       
     }
@@ -221,19 +229,23 @@ alpha2<- 0.05   # used in CI test
       
       g_adj_acc_boss <- ggplot(df_adjacency_accuracy_boss, aes(x = group, y = value)) +
         geom_boxplot() + ggtitle("BOSS: Adjacency Accuracy") + theme_minimal() +
-        theme(axis.title.x = element_blank())
+        theme(axis.title.x = element_blank())+
+        my_scale
       
       g_adj_sen_boss <- ggplot(df_adjacency_sensitivity_boss, aes(x = group, y = value)) +
         geom_boxplot() + ggtitle("BOSS: Adjacency Sensitivity") + theme_minimal()+
-        theme(axis.title.x = element_blank())
+        theme(axis.title.x = element_blank())+
+        my_scale
       
       g_ort_acc_boss <- ggplot(df_orientation_accuracy_boss, aes(x = group, y = value)) +
         geom_boxplot() + ggtitle("BOSS: Orientation Accuracy") + theme_minimal()+
-        theme(axis.title.x = element_blank())
+        theme(axis.title.x = element_blank())+
+        my_scale
       
       g_ort_sen_boss <- ggplot(df_orientation_sensitivity_boss, aes(x = group, y = value)) +
         geom_boxplot() + ggtitle("BOSS: Orientation Sensitivity") + theme_minimal()+
-        theme(axis.title.x = element_blank())
+        theme(axis.title.x = element_blank())+
+        my_scale
       
       ggboss <- ggpubr::ggarrange(
         g_adj_acc_boss, g_adj_sen_boss,
@@ -497,7 +509,7 @@ colMeans(df_wald[,1:3])
 # Full Simulation ---------------------------------------------------------
 
 nTarget = 30
-p= 10L; ad= 3L; asy.n= 20000L; ITER=500L
+p= 12L; ad= 3L; asy.n= 20000L; ITER=300L
 ps= p*(p-1)/2
 alpha2<- 0.05   # used in CI test
 
@@ -612,12 +624,8 @@ perf_ort.boss_bootstrap <- perf_ort.boss_unifcloud_02 <- perf_ort.boss_unifcloud
       
       perf_ort.boss_bootstrap[nT,,] <- sapply(Ghat_boss_bootstrap, function(ghat)
         eval_cda(true_adj = t(G0), est_adj = t(ghat))$metric.orient)
-      
     }
-  
   }
-  
-  
 }
 
 # Generate Plot
@@ -637,17 +645,18 @@ perf_ort.boss_bootstrap <- perf_ort.boss_unifcloud_02 <- perf_ort.boss_unifcloud
   
   #perf_adj.pc[,1,] # mean precision of adjacency for each graph
   # Distribution of mean performance across nTarget independently generated graphs
+  mynames<- c("bootstrap", "99% Cloud","95% Cloud","90% Cloud","80% Cloud")
   par(mfrow = c(2, 2), oma = c(0, 0, 3, 0))
-  boxplot(perf_adj.pc[,1,], names= c("bootstrap", "unicloud_0.01","unicloud_0.05","unicloud_0.02","unicloud_0.2"), main="Adjacency Precision")
-  boxplot(perf_adj.pc[,2,], names= c("bootstrap", "unicloud_0.01","unicloud_0.05","unicloud_0.02","unicloud_0.2"), main="Adjacency Sensitivity")
-  boxplot(perf_ort.pc[,1,], names= c("bootstrap", "unicloud_0.01","unicloud_0.05","unicloud_0.02","unicloud_0.2"), main="Orientation Precision")
-  boxplot(perf_ort.pc[,2,], names= c("bootstrap", "unicloud_0.01","unicloud_0.05","unicloud_0.02","unicloud_0.2"), main="Orientation Sensitivity")
+  boxplot(perf_adj.pc[,1,], names= mynames, main="Adjacency Precision")
+  boxplot(perf_adj.pc[,2,], names= mynames, main="Adjacency Sensitivity")
+  boxplot(perf_ort.pc[,1,], names= mynames, main="Orientation Precision")
+  boxplot(perf_ort.pc[,2,], names= mynames, main="Orientation Sensitivity")
   mtext("PC: Overall Performance Comparison", outer = TRUE, side = 3, line = 1.5, cex = 1.2)
   
-  boxplot(perf_adj.boss[,1,], names= c("bootstrap", "unicloud_0.01","unicloud_0.05","unicloud_0.02","unicloud_0.2"), main="Adjacency Precision")
-  boxplot(perf_adj.boss[,2,], names= c("bootstrap", "unicloud_0.01","unicloud_0.05","unicloud_0.02","unicloud_0.2"), main="Adjacency Sensitivity")
-  boxplot(perf_ort.boss[,1,], names= c("bootstrap", "unicloud_0.01","unicloud_0.05","unicloud_0.02","unicloud_0.2"), main="Orientation Precision")
-  boxplot(perf_ort.boss[,2,], names= c("bootstrap", "unicloud_0.01","unicloud_0.05","unicloud_0.02","unicloud_0.2"), main="Orientation Sensitivity")
+  boxplot(perf_adj.boss[,1,], names= mynames, main="Adjacency Precision")
+  boxplot(perf_adj.boss[,2,], names= mynames, main="Adjacency Sensitivity")
+  boxplot(perf_ort.boss[,1,], names= mynames, main="Orientation Precision")
+  boxplot(perf_ort.boss[,2,], names= mynames, main="Orientation Sensitivity")
   mtext("BOSS: Overall Performance Comparison", outer = TRUE, side = 3, line = 1.5, cex = 1.2)
   
 }

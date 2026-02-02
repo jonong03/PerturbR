@@ -598,6 +598,12 @@ Goal: Relationship between $C_{1-\alpha}(\rho_0)$ and causal discovery performan
 
 ![](docs/plots/onesim_boss_p20ad3_v2.png)
 
+**Full sim:** Distribution of mean precision across 30 independently generated graphs. Nodes=12, Ad= 3
+
+![](docs/plots/fullsim30_pc_p12ad3_v1.png)
+
+![](docs/plots/fullsim30_boss_p12ad3_v1.png)
+
 I plan to introduce an "unobserved" layer in simulations 4 and 5, and benchmark perturbed samples against (1) the observed layer (should be similar to Sim2), (2) the unobserved layer.
 
 Sim4 will focus on $R$ object first, and Sim5 will focus on CDA.
