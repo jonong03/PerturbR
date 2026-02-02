@@ -284,7 +284,7 @@ $$
 
 When $\rho$ is unknown, we use plug-in estimate $\hat\rho$.
 
-<span style="color: red;"> Need to prove $\hat\Psi \xrightarrow{p} \Psi$, haven't spent time on this </span>
+[Need to prove $\hat\Psi \xrightarrow{p} \Psi$, haven't spent time on this]{style="color: red;"}
 
 ## Confidence region of $\rho$
 
@@ -316,7 +316,7 @@ When $\Psi$ is unknown, by slutsky theorem, $C_{1-\alpha} = \{ \rho:  \ n(\hat{\
 
 Note:
 
-1.  I do think the confidence ellipsoid should be the *intersect* of $C_{1-\alpha}$ <span style="color: red;"> and </span> the PSD criteria.
+1.  I do think the confidence ellipsoid should be the *intersect* of $C_{1-\alpha}$ [and]{style="color: red;"} the PSD criteria.
 2.  The plug-in approach is only true when $\hat\Psi \xrightarrow{p} \Psi$ ? , still need to prove this.
 
 ## Generating random samples around $\rho_0$
@@ -348,7 +348,7 @@ This should give us below statement when $n$ is infinite, $$
 Pr_{\rho_0} (\rho \in C_{1-\alpha}(\hat\rho)) = 1-\alpha 
 $$
 
-### Sample inside confidence region of $\rho_0$ 
+### Sample inside confidence region of $\rho_0$
 
 The goal is to generate **uniform** and **random** samples **within** $C_{1-\alpha}(\rho_0)$ with guarantee: $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho_0)^T\Psi^{-1}(\hat{\rho} - \rho_0)\ \leq \chi^{2}_{p, 1-\alpha} \}$
 
@@ -367,7 +367,19 @@ $c$ sets the $1-\alpha$ chi-square cut-off that determines the confidence ellips
 ### Visualization of random uniform samples
 
 ::: {style="display:grid; grid-template-columns: 1fr; gap: 12px;"}
-<iframe src="plots/p1unif.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p2unif.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p3unif.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p4unif.html" width="100%" height="520" style="border:0;"></iframe>
+<iframe src="plots/p1unif.html" width="100%" height="520" style="border:0;">
+
+</iframe>
+
+<iframe src="plots/p2unif.html" width="100%" height="520" style="border:0;">
+
+</iframe>
+
+<iframe src="plots/p3unif.html" width="100%" height="520" style="border:0;">
+
+</iframe>
+
+<iframe src="plots/p4unif.html" width="100%" height="520" style="border:0;"></iframe>
 :::
 
 Why don't we use the first approach (Generate data then compute correlation) ?
@@ -477,7 +489,19 @@ What is shown here: Simulation of 4 different $R_0$'s from Simulation 1A.
 Given a $R_0$ (red dot), generate 1000 random samples, and run wald-test at $\alpha=0.05$.
 
 ::: {style="display:grid; grid-template-columns: 1fr; gap: 12px;"}
-<iframe src="plots/p1.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p2.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p3.html" width="100%" height="520" style="border:0;"></iframe> <iframe src="plots/p4.html" width="100%" height="520" style="border:0;"></iframe>
+<iframe src="plots/p1.html" width="100%" height="520" style="border:0;">
+
+</iframe>
+
+<iframe src="plots/p2.html" width="100%" height="520" style="border:0;">
+
+</iframe>
+
+<iframe src="plots/p3.html" width="100%" height="520" style="border:0;">
+
+</iframe>
+
+<iframe src="plots/p4.html" width="100%" height="520" style="border:0;"></iframe>
 :::
 
 ## Simulation 3: CDA Power Analysis based on correlation perturbation
@@ -486,21 +510,32 @@ Goal: Relationship between $C_{1-\alpha}(\rho_0)$ and causal discovery performan
 
 > **Simulation Flow:**
 >
-> **Input:** $\rho_0$, sample size $n$, $\alpha_1$ for $C_{1-\alpha}$, $\alpha_2$ for conditional independent tests, number of replicates $B$
+> **Input:**
 >
-> **Output:** Performance of CDA
-
-> Estimate Adjacency Matrix $G_0$ of $\rho_0$ with $n$, using PC-alg
+> 1.  $G_0$ and $\rho_0$ generated from DAO, with an assumed sample size $n$ \[Truth Layer\]
+> 2.  $\alpha_1$ as probability that the true parameter $\rho_0$ is excluded from the confidence region $C_{1-\alpha_1}(\rho_0)$,
+> 3.  $\alpha_2$ as significance level for conditional independent tests
+> 4.  number of replicates $B$ \[Observed Layer\]
 >
-> **for** $b$ $\leftarrow$ 1 to $B$:
+> **3A: for** $b$ $\leftarrow$ 1 to $B$:
 >
-> 1.  Sample $\hat\rho^{(b)}$ inside $C_{1-\alpha}$ "uniformly"(?)
+> 1.  Sample $\hat\rho^{(b)}$ from $C_{1-\alpha_1}(\rho_0)$
 >
-> 2.  Estimate $\hat{G}^{(b)}$ of $\hat\rho^{(b)}$ with $n$
+> 2.  Estimate $\hat{G}^{(b)}$ with $\hat\rho^{(b)}$, $n$ and $\alpha_2$
 >
-> 3.  Benchmark $\hat{G}^{(b)}$ with $G_0$, summarize performance
+> 3.  Benchmark $\hat{G}^{(b)}$ with $G_0$, summarize performance: TP/FP/FN/TN of Adjacency and Orientation
 >
-> **return** CDA performance of each $\hat{G}^{(b)}$: TP/FP/FN/TN of Adjacency and Orientation
+> **3B: for** $b$ $\leftarrow$ 1 to $B$:
+>
+> 1.  Simulate MVN data $X^{(b)}$ from $G_0$ and $\rho_0$
+>
+> 2.  Estimate $\hat\rho_X^{(b)}$
+>
+> 3.  Estimate $\hat{G}_X^{(b)}$ with $\hat\rho_X^{(b)}$, $n$ and $\alpha_2$
+>
+> 4.  Benchmark $\hat{G}_X^{(b)}$ with $G_0$, summarize performance
+>
+> **return** CDA performance of $\hat{G}^{(b)}$ and $\hat{G}_X^{(b)}$
 >
 > Vary $\alpha_1$ , Fix $\alpha_2$, $n$
 
@@ -536,7 +571,7 @@ Sim4 will focus on $R$ object first, and Sim5 will focus on CDA.
 >
 >     | **for** $k$ $\leftarrow$ 1 to $K$:
 >     | 1.1. Sample $\hat\rho^{(bk)}$ from Wald-cloud of $\hat\rho^{(b)}$, $\hat\rho^{(bk)}$ represent pertubations of $\hat\rho^{(b)}$.
->     | 1.2. Compute mahalanobis distance 
+>     | 1.2. Compute mahalanobis distance
 >     | $T_{bk} \leftarrow n(\hat{\rho}^{(bk)}-\hat{\rho}^{(b)})^{\top}[\hat\Psi(\hat\rho^{(b)})]^{-1}(\hat{\rho}^{(bk)}-\hat{\rho}^{(b)})$
 >     | $T^*_{bk} \leftarrow n(\hat{\rho}^{(bk)}-\rho_{halo})^{\top}[\hat\Psi(\hat\rho^{(bk)})]^{-1}(\hat{\rho}^{(bk)}-\rho_{halo})$
 >

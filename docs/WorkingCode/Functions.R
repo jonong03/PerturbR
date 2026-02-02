@@ -107,7 +107,7 @@ rwaldcloud<- function(R0, n= 1e5, B=1, output="matrix"){
   }
   
 }
-# Generate Sample (Uniform within boundary)
+# Generate Sample Randomly (1-alpha spread)
 runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output="matrix"){
   r0 <- R0[lower.tri(R0)]
   Psi0<- metaSEM::asyCov(R0, n = 1)
@@ -153,3 +153,5 @@ runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output="matrix"){
     return(t(rhat_vech[,is.psd]))
   }
 }
+
+
