@@ -77,7 +77,6 @@ rwaldcloud<- function(R0, n= 1e5, B=1, output="matrix"){
   eig<- eigen(Psi0)
   if(qr(Psi0)$rank != ps) {
     return(stop("Error: Covariance of R0 is not PSD"))
-    
   }
   U<- eig$vectors
   D<- diag(ps)
@@ -126,7 +125,8 @@ runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output="matrix"){
   Z<- mvtnorm::rmvnorm(n= B, sigma= diag(ps)) 
   Zs<- Z/sqrt(rowSums(Z^2))   
   # check norm =1 : rowSums(Zs^2)=1
-  r<- runif(B)^(1/ps) #random radius
+  radius <- runif(B)
+  r<- radius^(1/ps) #random radius
   
   Rhat<- array(NA, dim=c(d,d,B))
   rhat_vech<- matrix(NA_real_, nrow = ps, ncol = B)

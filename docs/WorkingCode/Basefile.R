@@ -1,9 +1,8 @@
 rm(list=ls());gc()
 source("docs/WorkingCode/Functions.R")
 
-pacman::p_load(metaSEM, dplyr, data.table, mvtnorm,rethinking, future.apply, parallel, parallelly)
+pacman::p_load(metaSEM, dplyr, data.table, mvtnorm, rethinking, future.apply, parallel, parallelly)
 
-set.seed(123)
 d=10; n= 1e3
 R1<- rlkjcorr(1,K=d,eta=2)
 Rhat<- rlkjcorr(1,K=d,eta=2)

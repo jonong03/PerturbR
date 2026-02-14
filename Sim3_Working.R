@@ -13,10 +13,10 @@ source_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1-
 
 
 # On time Simulation -----------------------------------------------------
-p= 20L; ad= 3L; asy.n= 20000L; ITER=300L
+p= 12L; ad= 3L; asy.n= 200L; ITER=300L
 ps= p*(p-1)/2
 #alpha1<- 0.05   # alpha1= 1 minus coveragelevel
-alpha2<- 0.05   # used in CI test
+alpha2<- 0.01   # used in CI test
 {
   # Truth Layer:
   Target = er_dag_py(p=p, ad=ad, n= asy.n, K=1L)  # Consists of K data sets
@@ -24,7 +24,7 @@ alpha2<- 0.05   # used in CI test
   #print(G0)
   R0 <- Target$R
   X<- Target$X[1,,]   # The only observed data
-  
+  Rhat<- cor(X)
   # Generate Rsamples. Approaches: 1) Bootstrap, 2) 1-alpha uniform wald cloud
   # Returns 3d-Array
   #Rhat.waldcloud<- rwaldcloud(Target$R, n = asy.n, B = ITER)
@@ -34,10 +34,10 @@ alpha2<- 0.05   # used in CI test
     X.boot<- X[BOOT.ID,]
     return(cor(X.boot))
   }) %>% simplify2array
-  Rhat.unifcloud_001<- runifcloud(Target$R, n = asy.n, B = ITER, alpha =  0.01)
-  Rhat.unifcloud_005<- runifcloud(Target$R, n = asy.n, B = ITER, alpha =  0.05)
-  Rhat.unifcloud_01<- runifcloud(Target$R, n = asy.n, B = ITER, alpha =  0.1)
-  Rhat.unifcloud_02<- runifcloud(Target$R, n = asy.n, B = ITER, alpha =  0.2)
+  Rhat.unifcloud_001<- runifcloud(Rhat, n = asy.n, B = ITER, alpha =  0.01)
+  Rhat.unifcloud_005<- runifcloud(Rhat, n = asy.n, B = ITER, alpha =  0.05)
+  Rhat.unifcloud_01<- runifcloud(Rhat, n = asy.n, B = ITER, alpha =  0.1)
+  Rhat.unifcloud_02<- runifcloud(Rhat, n = asy.n, B = ITER, alpha =  0.2)
   
   # Run CDA
   # PC
@@ -508,10 +508,10 @@ colMeans(df_wald[,1:3])
 
 # Full Simulation ---------------------------------------------------------
 
-nTarget = 30
-p= 12L; ad= 3L; asy.n= 20000L; ITER=300L
+nTarget = 10
+p= 12L; ad= 3L; asy.n= 2000L; ITER=300L
 ps= p*(p-1)/2
-alpha2<- 0.05   # used in CI test
+alpha2<- 0.01   # used in CI test
 
 perf_adj.bootstrap<- perf_adj.unifcloud_02 <- perf_adj.unifcloud_01 <- perf_adj.unifcloud_005 <- perf_adj.unifcloud_001 <-array(NA, dim=c(nTarget, 2, ITER))
 perf_ort.bootstrap<- perf_ort.unifcloud_02 <- perf_ort.unifcloud_01 <- perf_ort.unifcloud_005 <- perf_ort.unifcloud_001 <-array(NA, dim=c(nTarget, 2, ITER))
@@ -524,7 +524,7 @@ perf_ort.boss_bootstrap <- perf_ort.boss_unifcloud_02 <- perf_ort.boss_unifcloud
   for(nT in 1:nTarget){
     cat(Sys.time(),";Iteration:", nT, "\n")
     # Truth Layer:
-    Target = er_dag_py(p=p, ad=ad, n= asy.n, K=ITER)  # Consists of K data sets
+    Target = er_dag_py(p=p, ad=ad, n= asy.n, K=2L)  # Consists of K data sets
     G0 <- Target$G
     R0 <- Target$R
     X<- Target$X[1,,]   # The only observed data
@@ -538,10 +538,11 @@ perf_ort.boss_bootstrap <- perf_ort.boss_unifcloud_02 <- perf_ort.boss_unifcloud
       X.boot<- X[BOOT.ID,]
       return(cor(X.boot))
     }) %>% simplify2array
-    Rhat.unifcloud_001<- runifcloud(Target$R, n = asy.n, B = ITER, alpha =  0.01)
-    Rhat.unifcloud_005<- runifcloud(Target$R, n = asy.n, B = ITER, alpha =  0.05)
-    Rhat.unifcloud_01<- runifcloud(Target$R, n = asy.n, B = ITER, alpha =  0.1)
-    Rhat.unifcloud_02<- runifcloud(Target$R, n = asy.n, B = ITER, alpha =  0.2)
+    Rhat<- cor(X)
+    Rhat.unifcloud_001<- runifcloud(Rhat, n = asy.n, B = ITER, alpha =  0.01)
+    Rhat.unifcloud_005<- runifcloud(Rhat, n = asy.n, B = ITER, alpha =  0.05)
+    Rhat.unifcloud_01<- runifcloud(Rhat, n = asy.n, B = ITER, alpha =  0.1)
+    Rhat.unifcloud_02<- runifcloud(Rhat, n = asy.n, B = ITER, alpha =  0.2)
     
     # Run CDA
     # PC
@@ -661,6 +662,7 @@ perf_ort.boss_bootstrap <- perf_ort.boss_unifcloud_02 <- perf_ort.boss_unifcloud
   
 }
 
+perf_adj.pc
 perf_ort.pc
 perf_adj.boss
 perf_ort.boss

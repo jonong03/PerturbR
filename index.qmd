@@ -17,21 +17,7 @@ pacman::p_load(data.table, dplyr, plotly, rethinking, gt)
 
 # Goal
 
--   **Ultimate goal**: Develop an approach that allows us to claim "With 95% confidence, this confidence region contains the true set".
-
--   **Temporary goal**: In reality, the true set is unobserved; we only observe data. Since many causal discovery algorithms operates on the data correlation matrix $R_{obs}$, our intermediate goal is to generate perturbations around $R_{obs}$, aiming to represent the sampling distribution of the correlation estimator under repeated sampling. We then use this approximation to construct a confidence region for the underlying population correlation structure, and study how causal discovery perform across this region.
-
--   Parking-lot questions:
-
-    1.  What is our scope, what assumptions are we making:
-
-        We assume infinite sample at this stage, distribution of pearson correlation estimators is asymptotically normal. Want a frequentist approach.
-
-    2.  Inference on $\rho$ :
-
-        Do we think joint-inference, fisher-z transformation approach would work better?
-
-    3.  
+This site documents on-going work toward quantifying how perturbations in correlation space affect the power and stability of causal discovery algorithms.
 
 # Notations
 
@@ -282,9 +268,7 @@ N\,\sigma_{jk,hm}
 \Big].
 $$
 
-When $\rho$ is unknown, we use plug-in estimate $\hat\rho$.
-
-[Need to prove $\hat\Psi \xrightarrow{p} \Psi$, haven't spent time on this]{style="color: red;"}
+When $\rho$ is unknown, we use plug-in estimate $\hat\rho$. We also need to prove $\hat\Psi \xrightarrow{p} \Psi$.
 
 ## Confidence region of $\rho$
 
@@ -317,7 +301,7 @@ When $\Psi$ is unknown, by slutsky theorem, $C_{1-\alpha} = \{ \rho:  \ n(\hat{\
 Note:
 
 1.  I do think the confidence ellipsoid should be the *intersect* of $C_{1-\alpha}$ [and]{style="color: red;"} the PSD criteria.
-2.  The plug-in approach is only true when $\hat\Psi \xrightarrow{p} \Psi$ ? , still need to prove this.
+2.  The plug-in approach is only true when $\hat\Psi \xrightarrow{p} \Psi$ ? , we will need to prove this.
 
 ## Generating random samples around $\rho_0$
 
@@ -606,50 +590,7 @@ Goal: Relationship between $C_{1-\alpha}(\rho_0)$ and causal discovery performan
 
 I plan to introduce an "unobserved" layer in simulations 4 and 5, and benchmark perturbed samples against (1) the observed layer (should be similar to Sim2), (2) the unobserved layer.
 
-Sim4 will focus on $R$ object first, and Sim5 will focus on CDA.
-
-## Simulation 4: The \$100M question - Part 1 (focus on $R$ )
-
-**Setting**: There exist an unknown truth: $R_{halo}$ , we observe a representation of $R_{halo}$, denote as $\hat{R}$ in real world, and we make perturbations on $\hat{R}$: denote as $\hat{R}^{\prime}$.
-
-**Question**:
-
--   Broad: Can $\hat{R}^{\prime}$ tell us anything about $R_{halo}$?
-
--   Specific questions: ???
-
-> **Simulation:**
->
-> **Input:** $\rho_{halo}$, $\Psi(\rho_{halo})$, $B$, $K$
->
-> **Output:**
->
-> $H \leftarrow 0$
->
-> **for** $b$ $\leftarrow$ 1 to $B$:
->
-> 1.  Sample $\hat\rho^{(b)}$ from Wald-cloud of $\rho_{halo}$, $\hat\rho^{(b)}$ represent what we observed.
->
->     | **for** $k$ $\leftarrow$ 1 to $K$:
->     | 1.1. Sample $\hat\rho^{(bk)}$ from Wald-cloud of $\hat\rho^{(b)}$, $\hat\rho^{(bk)}$ represent pertubations of $\hat\rho^{(b)}$.
->     | 1.2. Compute mahalanobis distance
->     | $T_{bk} \leftarrow n(\hat{\rho}^{(bk)}-\hat{\rho}^{(b)})^{\top}[\hat\Psi(\hat\rho^{(b)})]^{-1}(\hat{\rho}^{(bk)}-\hat{\rho}^{(b)})$
->     | $T^*_{bk} \leftarrow n(\hat{\rho}^{(bk)}-\rho_{halo})^{\top}[\hat\Psi(\hat\rho^{(bk)})]^{-1}(\hat{\rho}^{(bk)}-\rho_{halo})$
->
-> 2.  Compute mahalanobis distance $T_b \leftarrow n(\hat{\rho}^{(b)}-\rho_{halo})^{\top}[\hat\Psi(\hat\rho^{(b)})]^{-1}(\hat{\rho}^{(b)}-\rho_{halo})$
->
-> 3.  Compare $T_b$ , $T_{bk}$, $T^*_{bk}$ with $\chi^2_{p,1-\alpha}$
->
-> 4.  **return** ?
-
-Note:
-
-1.  used plug-in estimate $\hat\Psi(\hat\rho^{(bk)})$ in $T^*_{bk}$ because $\Psi(\rho_{halo})$ is unobserved
-2.  
-
-## Simulation 5: The \$100M question - Part 2 (focus on $G$ )
-
-# References
+# 
 
 # Others
 
@@ -663,3 +604,11 @@ Note:
         This approach works in lower dimension, however became highly inefficient (large rejection rate) as dimension grows.
 
         ![](docs/plots/RejectionSamplingRate.png){width="399"}
+
+# References
+
+1.  Kalisch, M., Mächler, M., Colombo, D., Maathuis, M. H., & Bühlmann, P. (2012). Causal Inference Using Graphical Models with the *R* Package **pcalg**. *Journal of Statistical Software*, *47*(11). <https://doi.org/10.18637/jss.v047.i11>
+
+2.  Kummerfeld, E., Williams, L., & Ma, S. (2024). Power analysis for causal discovery. *International Journal of Data Science and Analytics*, *17*(3), 289–304. <https://doi.org/10.1007/s41060-023-00399-4>
+
+3.  **Steiger, J. H. (1990).** Structural model evaluation and modification: An interval estimation approach. *Multivariate Behavioral Research, 25*(2), 173-180.
