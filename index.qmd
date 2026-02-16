@@ -527,7 +527,7 @@ Given a $R_0$ (red dot), generate 1000 random samples, and run wald-test at $\al
 </iframe>
 :::
 
-## Simulation 3: CDA Power Analysis based on correlation perturbation
+## Simulation 3: CDA Power Analysis based on correlation perturbation \[To be corrected and updated\]
 
 Goal: Relationship between $C_{1-\alpha}(\rho_0)$ and causal discovery performance of $\rho_0$. (need to break down a little more).
 
@@ -586,7 +586,7 @@ Goal: Relationship between $C_{1-\alpha}(\rho_0)$ and causal discovery performan
 
 I plan to introduce an "unobserved" layer in simulations 4 and 5, and benchmark perturbed samples against (1) the observed layer (should be similar to Sim2), (2) the unobserved layer.
 
-# Simulation 4:
+## Simulation 4: Compare Performance based on different sampling approaches
 
 Recap first:
 
