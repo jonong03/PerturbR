@@ -604,13 +604,21 @@ First Graph: Performance of individual graph
 
 Second Graph: Performance of ensemble graph
 
+**PC**
+
 ![]()
 
 ![](docs/plots/Performance/PC v1 (nodes10ad3nT200ITER300).png)
 
 ![](docs/plots/Performance/PC ensemble (nodes10ad3nT200ITER300).png)
 
-# Simulation 5: Computing Resources
+**BOSS**
+
+![](docs/plots/Performance/BOSS v1 (nodes10ad3nT200ITER300).png)
+
+![](docs/plots/Performance/BOSS ensemble (nodes10ad3nT200ITER300).png)
+
+## Simulation 5: Computing Resources
 
 Only comparing resampling processes: Bootstrap versus FastR
 

@@ -179,6 +179,13 @@
     "href": "index.html#simulation-4-compare-performance-based-on-different-sampling-approaches",
     "title": "3D Correlation Space",
     "section": "Simulation 4: Compare Performance based on different sampling approaches",
-    "text": "Simulation 4: Compare Performance based on different sampling approaches\nRecap first:\n\nEvaluation targets:\n\nGhat from the observed (non-perturbed, existing approach) Rhat\nindividual graphs,\nensemble graphs.\n\nBenchmark:\n\nG0 (Ghalo)\nG0hat (estimate from Rhalo)\n\n\n300 Graphs from DAO (Nodes: 10, AD: 2) , and each graphs consists of 200 Samples (R1…. R200). Type1 error for CI-test: 0.01.\nFirst Graph: Performance of individual graph\nSecond Graph: Performance of ensemble graph"
+    "text": "Simulation 4: Compare Performance based on different sampling approaches\nRecap first:\n\nEvaluation targets:\n\nGhat from the observed (non-perturbed, existing approach) Rhat\nindividual graphs,\nensemble graphs.\n\nBenchmark:\n\nG0 (Ghalo)\nG0hat (estimate from Rhalo)\n\n\n300 Graphs from DAO (Nodes: 10, AD: 2) , and each graphs consists of 200 Samples (R1…. R200). Type1 error for CI-test: 0.01.\nFirst Graph: Performance of individual graph\nSecond Graph: Performance of ensemble graph\nPC\n\n\n\nBOSS"
+  },
+  {
+    "objectID": "index.html#simulation-5-computing-resources",
+    "href": "index.html#simulation-5-computing-resources",
+    "title": "3D Correlation Space",
+    "section": "Simulation 5: Computing Resources",
+    "text": "Simulation 5: Computing Resources\nOnly comparing resampling processes: Bootstrap versus FastR\n\nSample 300 \\(\\hat{R}\\) s from each method -&gt; This considers one iteration.\nRuntime: Report median run time over 100 iterations.\nMemory usage: Report memory allocated and number of garbage collection."
   }
 ]
