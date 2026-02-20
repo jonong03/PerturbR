@@ -598,7 +598,7 @@ Recap first:
     1.  G0 (Ghalo)
     2.  G0hat (estimate from Rhalo)
 
-300 Graphs from DAO (Nodes: 10, AD: 2) , and each graphs consists of 200 Samples (R1.... R200). Type1 error for CI-test: 0.01.
+300 Graphs from DAO (Nodes: 10, AD: 2), and each graphs consists of 200 bootstrapped samples (R1.... R200). Type1 error for CI-test: 0.01. Sample Size = 20000.
 
 First Graph: Performance of individual graph
 
@@ -608,15 +608,15 @@ Second Graph: Performance of ensemble graph
 
 ![]()
 
-![](docs/plots/Performance/PC v1 (nodes10ad3nT200ITER300).png)
+![](docs/plots/Performance/PC%20v1%20(nodes10ad3nT200ITER300).png)
 
-![](docs/plots/Performance/PC ensemble (nodes10ad3nT200ITER300).png)
+![](docs/plots/Performance/PC%20ensemble%20(nodes10ad3nT200ITER300).png)
 
 **BOSS**
 
-![](docs/plots/Performance/BOSS v1 (nodes10ad3nT200ITER300).png)
+![](docs/plots/Performance/BOSS%20v1%20(nodes10ad3nT200ITER300).png)
 
-![](docs/plots/Performance/BOSS ensemble (nodes10ad3nT200ITER300).png)
+![](docs/plots/Performance/BOSS%20ensemble%20(nodes10ad3nT200ITER300).png)
 
 ## Simulation 5: Computing Resources
 

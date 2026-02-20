@@ -1,6 +1,6 @@
 # PerturbR Sim3
 rm(list=ls()); gc()
-pacman::p_load(metaSEM, dplyr, data.table, mvtnorm, rethinking, future.apply, parallel, parallelly, reticulate, pcalg, ggplot2)
+pacman::p_load(metaSEM, dplyr, data.table, mvtnorm, rethinking, future.apply, parallel, parallelly, reticulate, pcalg, ggplot2, ggpubr)
 use_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR-CDA/.venv/bin/python", required = TRUE)
 py_config() 
 
@@ -21,6 +21,99 @@ boot_cor <- function(X, asy.n, B) {
     arr[, , b] <- cor(X[boot_id, , drop = FALSE])
   }
   arr
+}
+
+
+# Parameters --------------------------------------------------------------
+
+### Sim parameters
+{
+  nTarget <- 300L
+  p <- 10L
+  ad <- 2L
+  asy.n <- 200L
+  ITER <- 200L
+  alpha2 <- 0.01
+  main_title <- paste0(
+    nTarget, " Graphs (p=", p, ", ad=", ad, 
+    "), each with ", ITER, " resamples, n=", asy.n, 
+    ", alpha=", alpha2
+  )
+  out_dir<- "~/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR/docs/plots/Performance/"
+}
+
+### Default Functions
+{
+  methods <- c("waldcloud", "unifcloud_001", "unifcloud_01", "unifcloud_02", "bootstrap")
+  n_obs_by_method <- c(
+    waldcloud = asy.n,
+    unifcloud_001 = asy.n,
+    unifcloud_01 = asy.n,
+    unifcloud_02 = asy.n,
+    bootstrap = as.integer(asy.n / 2L)
+  )
+  
+  # perf arrays: [nT, metric(accuracy/sensitivity), iter]
+  alloc_perf_array <- function() {
+    array(
+      NA_real_,
+      dim = c(nTarget, 2L, ITER),
+      dimnames = list(
+        nT = as.character(seq_len(nTarget)),
+        metric = c("accuracy", "sensitivity"),
+        iter = as.character(seq_len(ITER))
+      )
+    )
+  }
+  
+  perf <- list(
+    pc = list(
+      adj = setNames(lapply(methods, function(...) alloc_perf_array()), methods),
+      orient = setNames(lapply(methods, function(...) alloc_perf_array()), methods)
+    ),
+    boss = list(
+      adj = setNames(lapply(methods, function(...) alloc_perf_array()), methods),
+      orient = setNames(lapply(methods, function(...) alloc_perf_array()), methods)
+    )
+  )
+  
+  # Store fitted adjacency matrices as arrays [p, p, ITER] for each nT and method
+  fit <- list(
+    truth    = vector("list", nTarget),
+    baseline = list(pc = vector("list", nTarget), boss = vector("list", nTarget)),
+    optimal  = list(pc = vector("list", nTarget), boss = vector("list", nTarget))
+  )
+  
+  # fit[[method]][[nT]]$algo[[i]]  (i = 1..ITER)
+  for (m in methods) {
+    fit[[m]] <- vector("list", nTarget)
+    for (nT in seq_len(nTarget)) {
+      fit[[m]][[nT]] <- list(
+        pc   = vector("list", ITER),
+        boss = vector("list", ITER)
+      )
+    }
+  }
+  
+  
+  run_pc_mat <- function(Cmat, n_obs, alpha) {
+    p= ncol(Cmat)
+    as(
+      pcalg::pc(
+        suffStat = list(C = Cmat, n = n_obs),
+        indepTest = gaussCItest,
+        p = p,
+        alpha = alpha
+      ),
+      "matrix"
+    )
+  }
+  
+  get_metric <- function(G0, Ghat) {
+    out <- eval_cda(true_adj = t(G0), est_adj = t(Ghat))
+    list(adj = out$metric.adj, orient = out$metric.orient)
+  }
+  
 }
 
 
@@ -202,87 +295,8 @@ perf_ort.boss
 
 
 
-# Full Simulation Codex ---------------------------------------------------
+# Full Simulation 2 ---------------------------------------------------
 
-# ---- Settings (kept as requested) ----
-nTarget <- 200L
-p <- 10L
-ad <- 2L
-asy.n <- 20000L
-ITER <- 300L
-alpha2 <- 0.01
-
-
-{
-  methods <- c("waldcloud", "unifcloud_001", "unifcloud_01", "bootstrap")
-  n_obs_by_method <- c(
-    waldcloud = asy.n,
-    unifcloud_001 = asy.n,
-    unifcloud_01 = asy.n,
-    bootstrap = as.integer(asy.n / 2L)
-  )
-  
-  # perf arrays: [nT, metric(accuracy/sensitivity), iter]
-  alloc_perf_array <- function() {
-    array(
-      NA_real_,
-      dim = c(nTarget, 2L, ITER),
-      dimnames = list(
-        nT = as.character(seq_len(nTarget)),
-        metric = c("accuracy", "sensitivity"),
-        iter = as.character(seq_len(ITER))
-      )
-    )
-  }
-  
-  perf <- list(
-    pc = list(
-      adj = setNames(lapply(methods, function(...) alloc_perf_array()), methods),
-      orient = setNames(lapply(methods, function(...) alloc_perf_array()), methods)
-    ),
-    boss = list(
-      adj = setNames(lapply(methods, function(...) alloc_perf_array()), methods),
-      orient = setNames(lapply(methods, function(...) alloc_perf_array()), methods)
-    )
-  )
-  
-  # Store fitted adjacency matrices as arrays [p, p, ITER] for each nT and method
-  fit <- list(
-    truth    = vector("list", nTarget),
-    baseline = list(pc = vector("list", nTarget), boss = vector("list", nTarget)),
-    optimal  = list(pc = vector("list", nTarget), boss = vector("list", nTarget))
-  )
-  
-  # fit[[method]][[nT]]$algo[[i]]  (i = 1..ITER)
-  for (m in methods) {
-    fit[[m]] <- vector("list", nTarget)
-    for (nT in seq_len(nTarget)) {
-      fit[[m]][[nT]] <- list(
-        pc   = vector("list", ITER),
-        boss = vector("list", ITER)
-      )
-    }
-  }
-  
-  
-  run_pc_mat <- function(Cmat, n_obs) {
-    as(
-      pcalg::pc(
-        suffStat = list(C = Cmat, n = n_obs),
-        indepTest = gaussCItest,
-        p = p,
-        alpha = alpha2
-      ),
-      "matrix"
-    )
-  }
-  
-  get_metric <- function(G0, Ghat) {
-    out <- eval_cda(true_adj = t(G0), est_adj = t(Ghat))
-    list(adj = out$metric.adj, orient = out$metric.orient)
-  }
-  
-}
 
 for (nT in seq_len(nTarget)) {
   cat(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "; Iteration:", nT, "\n")
@@ -298,6 +312,7 @@ for (nT in seq_len(nTarget)) {
     waldcloud     = rwaldcloud(Rhat, n = asy.n, B = ITER),
     unifcloud_001 = runifcloud(Rhat, n = asy.n, B = ITER, alpha = 0.01),
     unifcloud_01  = runifcloud(Rhat, n = asy.n, B = ITER, alpha = 0.1),
+    unifcloud_02  = runifcloud(Rhat, n = asy.n, B = ITER, alpha = 0.2),
     bootstrap     = boot_cor(X, asy.n = asy.n, B = ITER)
   )
   
@@ -320,116 +335,285 @@ for (nT in seq_len(nTarget)) {
   }
 }
 
-#fit$truth: G0
-#fit$optimal: learn based on R0
-#fit$baseline: learn based on Rhat
-#fit$waldcloud and other methods.... learn based on perturbation of Rhat
 
-{ #Build Comparison Table
-  library(data.table)
-  # out: 4x3, rows TP/FP/FN/TN, col2 adj, col3 orient
-  out_to_row <- function(out_mat) {
-    data.table(
-      TP_adj = as.integer(out_mat[1, 2]),
-      FP_adj = as.integer(out_mat[2, 2]),
-      FN_adj = as.integer(out_mat[3, 2]),
-      TN_adj = as.integer(out_mat[4, 2]),
-      TP_ort = as.integer(out_mat[1, 3]),
-      FP_ort = as.integer(out_mat[2, 3]),
-      FN_ort = as.integer(out_mat[3, 3]),
-      TN_ort = as.integer(out_mat[4, 3])
+
+# Parallel Run ------------------------------------------------------------
+{
+  {
+    library(parallelly); library(future.apply)
+    plan(multisession, workers = max(1, parallelly::availableCores() - 1))
+    run_one_nT <- function(nT, p, ad, asy.n, ITER, methods, n_obs_by_method, alpha2) {
+      # Worker-local init (critical)
+      
+      # source(bridge_file, local = TRUE)  
+      # Source python files
+      source_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR-CDA/process1.py")
+      source_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR-CDA/boss_py.py")
+      source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR/docs/WorkingCode/Functions.R", local= TRUE)  # Wald cloud
+      source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/CDA/Scripts/Functions.R", local= TRUE)  # Base CDA Functions
+      
+      Target <- er_dag_py(p = p, ad = ad, n = asy.n, K = 1L)
+      G0 <- Target$G; R0 <- Target$R
+      X <- Target$X[1, , ]
+      Rhat <- cor(X)
+      
+      Rhat_arr <- list(
+        waldcloud     = rwaldcloud(Rhat, n = asy.n, B = ITER),
+        unifcloud_001 = runifcloud(Rhat, n = asy.n, B = ITER, alpha = 0.01),
+        unifcloud_01  = runifcloud(Rhat, n = asy.n, B = ITER, alpha = 0.1),
+        unifcloud_02  = runifcloud(Rhat, n = asy.n, B = ITER, alpha = 0.2),
+        bootstrap     = boot_cor(X, asy.n = asy.n, B = ITER)
+      )
+      
+      out <- list(
+        truth = G0,
+        optimal = list(pc = run_pc_mat(R0, asy.n, alpha= alpha2), boss = boss_py(R0, asy.n)),
+        baseline = list(pc = run_pc_mat(Rhat, asy.n,  alpha= alpha2), boss = boss_py(Rhat, asy.n)),
+        methods = setNames(vector("list", length(methods)), methods)
+      )
+      
+      for (m in methods) {
+        n_obs <- n_obs_by_method[[m]]
+        out$methods[[m]] <- list(
+          pc = lapply(seq_len(ITER), function(i) run_pc_mat(Rhat_arr[[m]][, , i], n_obs, alpha= alpha2)),
+          boss = lapply(seq_len(ITER), function(i) boss_py(Rhat_arr[[m]][, , i], n_obs))
+        )
+      }
+      out
+    }
+    run_one_nT <- function(nT, p, ad, asy.n, ITER, methods, n_obs_by_method, alpha2) {
+      # Worker-local init
+      reticulate::source_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR-CDA/process1.py")
+      reticulate::source_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR-CDA/boss_py.py")
+      source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR/docs/WorkingCode/Functions.R", local = TRUE)
+      source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/CDA/Scripts/Functions.R", local = TRUE)
+      
+      Target <- er_dag_py(p = p, ad = ad, n = asy.n, K = 1L)
+      G0 <- Target$G
+      R0 <- Target$R
+      X <- Target$X[1, , ]
+      Rhat <- cor(X)
+      
+      # keep same top-level structure
+      out <- list(
+        truth = G0,
+        optimal = list(
+          pc = run_pc_mat(R0, asy.n, alpha = alpha2),
+          boss = boss_py(R0, asy.n)
+        ),
+        baseline = list(
+          pc = run_pc_mat(Rhat, asy.n, alpha = alpha2),
+          boss = boss_py(Rhat, asy.n)
+        ),
+        methods = setNames(vector("list", length(methods)), methods)
+      )
+      
+      # build Rhat_arr method-by-method with error capture
+      rhat_builders <- list(
+        waldcloud     = function() rwaldcloud(Rhat, n = asy.n, B = ITER),
+        unifcloud_001 = function() runifcloud(Rhat, n = asy.n, B = ITER, alpha = 0.01),
+        unifcloud_01  = function() runifcloud(Rhat, n = asy.n, B = ITER, alpha = 0.1),
+        unifcloud_02  = function() runifcloud(Rhat, n = asy.n, B = ITER, alpha = 0.2),
+        bootstrap     = function() boot_cor(X, asy.n = asy.n, B = ITER)
+      )
+      
+      Rhat_arr <- setNames(vector("list", length(methods)), methods)
+      Rhat_err <- setNames(vector("list", length(methods)), methods)
+      
+      for (m in methods) {
+        tmp <- tryCatch(rhat_builders[[m]](), error = function(e) e)
+        if (inherits(tmp, "error")) {
+          Rhat_arr[[m]] <- NULL
+          Rhat_err[[m]] <- conditionMessage(tmp)
+        } else {
+          Rhat_arr[[m]] <- tmp
+          Rhat_err[[m]] <- NULL
+        }
+      }
+      
+      # fill out$methods with same nesting; skip fit calls for failed methods
+      for (m in methods) {
+        if (!is.null(Rhat_err[[m]])) {
+          out$methods[[m]] <- list(
+            pc = NULL,
+            boss = NULL,
+            error = Rhat_err[[m]]
+          )
+          next
+        }
+        
+        n_obs <- n_obs_by_method[[m]]
+        out$methods[[m]] <- list(
+          pc = lapply(seq_len(ITER), function(i) run_pc_mat(Rhat_arr[[m]][, , i], n_obs, alpha = alpha2)),
+          boss = lapply(seq_len(ITER), function(i) boss_py(Rhat_arr[[m]][, , i], n_obs)),
+          error = NULL
+        )
+      }
+      
+      out
+    }
+    
+    res <- future_lapply(
+      seq_len(nTarget),
+      run_one_nT,
+      p = p, ad = ad, asy.n = asy.n, ITER = ITER, alpha2= alpha2,
+      methods = methods, n_obs_by_method = n_obs_by_method,
+      future.packages = c("pcalg", "reticulate"),
+      future.seed = TRUE,
+      future.globals = c("run_pc_mat")  # keep globals minimal
     )
+    
+    plan(sequential)
+    
+  }
+  {
+    rebuild_fit_from_res <- function(res) {
+      nTarget <- length(res)
+      if (nTarget == 0L) stop("`res` is empty.")
+      
+      # infer methods from first element (exclude fixed keys)
+      fixed_keys <- c("truth", "optimal", "baseline", "methods")
+      methods <- setdiff(names(res[[1]]), fixed_keys)
+      
+      # if worker returned $methods[[m]] style, use those names instead
+      if ("methods" %in% names(res[[1]]) && is.list(res[[1]]$methods)) {
+        methods <- names(res[[1]]$methods)
+      }
+      
+      fit <- list(
+        truth = vector("list", nTarget),
+        optimal = list(
+          pc = vector("list", nTarget),
+          boss = vector("list", nTarget)
+        ),
+        baseline = list(
+          pc = vector("list", nTarget),
+          boss = vector("list", nTarget)
+        )
+      )
+      
+      for (m in methods) fit[[m]] <- vector("list", nTarget)
+      
+      for (nT in seq_len(nTarget)) {
+        fit$truth[[nT]] <- res[[nT]]$truth
+        fit$optimal$pc[[nT]] <- res[[nT]]$optimal$pc
+        fit$optimal$boss[[nT]] <- res[[nT]]$optimal$boss
+        fit$baseline$pc[[nT]] <- res[[nT]]$baseline$pc
+        fit$baseline$boss[[nT]] <- res[[nT]]$baseline$boss
+        
+        for (m in methods) {
+          fit[[m]][[nT]] <-
+            if ("methods" %in% names(res[[nT]]) && is.list(res[[nT]]$methods)) {
+              res[[nT]]$methods[[m]]
+            } else {
+              res[[nT]][[m]]
+            }
+        }
+      }
+      
+      fit
+    }
+    fit <- rebuild_fit_from_res(res)
   }
   
-  build_eval_table <- function(fit,
-                               methods = c("baseline","waldcloud","unifcloud_001","unifcloud_01","bootstrap"),
-                               algos   = c("pc","boss"),
-                               targets = c("G0","G0hat","Ghat"),
-                               nTarget,
-                               ITER) {
-    
-    # allocate generously; baseline has only 1 i, others have ITER
-    max_rows <- nTarget * length(algos) * length(targets) * (
-      1L + (length(methods) - 1L) * ITER
-    )
-    
-    rows <- vector("list", max_rows)
-    idx <- 0L
+}
+{ # Error Count
+  # nT indices that have at least one method error
+  nT_with_error <- which(vapply(
+    res,
+    function(x) any(vapply(x$methods, function(mm) !is.null(mm$error), logical(1))),
+    logical(1)
+  ))
+  nT_with_error
+}
+
+#fit$optimal: learn based on R0: G0hat
+#fit$baseline: learn based on Rhat
+#fit$waldcloud and other methods.... learn based on perturbation of Rhat
+fit$baseline$pc %>% length
+
+# ETL and Plotting --------------------------------------------------------
+### Table ETL
+{# New
+  library(data.table)
+  
+  safe_div <- function(num, den) ifelse(den == 0, NA_real_, num / den)
+  build_eval_table <- function(fit,methods,algos,targets,nTarget) {
+    ITER = unique(fit$baseline$pc)
+    chunks <- vector("list", nTarget * length(algos))
+    k <- 0L
     
     for (algo in algos) {
       for (nT in seq_len(nTarget)) {
-        
-        # Targets for this replicate (G0 shared; others algo-specific)
-        G0    <- fit$truth[[nT]]
+        G0 <- fit$truth[[nT]]
         G0hat <- fit$optimal[[algo]][[nT]]
-        Ghat  <- fit$baseline[[algo]][[nT]]
+        Ghat_base <- fit$baseline[[algo]][[nT]]
+        true_map <- list(G0 = G0, G0hat = G0hat, Ghat = Ghat_base)
+        
+        rows_nt <- list()
+        r <- 0L
         
         for (m in methods) {
-          
-          # baseline has a single estimate (i=1); perturb methods have i=1..ITER
           i_seq <- if (m == "baseline") 1L else seq_len(ITER)
           
           for (i in i_seq) {
+            G_est <- if (m == "baseline") Ghat_base else fit[[m]][[nT]][[algo]][[i]]
             
-            # estimator graph
-            G_est <- if (m == "baseline") {
-              fit$baseline[[algo]][[nT]]
-            } else {
-              fit[[m]][[nT]][[algo]][[i]]
-            }
+            # skip missing/error entries
+            if (is.null(G_est)) next
             
             for (tgt in targets) {
-              
-              G_true <- switch(
-                tgt,
-                G0    = G0,
-                G0hat = G0hat,
-                Ghat  = Ghat,
-                stop("Unknown target: ", tgt)
+              G_true <- true_map[[tgt]]
+              out_mat <- eval_cda(true_adj = G_true, est_adj = G_est)$out
+              met <-     c(
+                TP_adj = out_mat[1, 2], FP_adj = out_mat[2, 2], FN_adj = out_mat[3, 2], TN_adj = out_mat[4, 2],
+                TP_ort = out_mat[1, 3], FP_ort = out_mat[2, 3], FN_ort = out_mat[3, 3], TN_ort = out_mat[4, 3]
               )
               
-              out_mat <- eval_cda(true_adj = as.matrix(G_true),
-                                  est_adj  = as.matrix(G_est))$out
-              
-              idx <- idx + 1L
-              rows[[idx]] <- cbind(
-                data.table(method = m, algo = algo, target = tgt, nT = nT, i = i),
-                out_to_row(out_mat)
+              r <- r + 1L
+              rows_nt[[r]] <- list(
+                method = m, algo = algo, target = tgt, nT = nT, i = i,
+                TP_adj = met["TP_adj"], FP_adj = met["FP_adj"], FN_adj = met["FN_adj"], TN_adj = met["TN_adj"],
+                TP_ort = met["TP_ort"], FP_ort = met["FP_ort"], FN_ort = met["FN_ort"], TN_ort = met["TN_ort"]
               )
             }
           }
         }
+        
+        k <- k + 1L
+        chunks[[k]] <- rbindlist(rows_nt, use.names = TRUE, fill = TRUE)
       }
     }
     
-    rbindlist(rows[seq_len(idx)], use.names = TRUE)
+    dt <- rbindlist(chunks, use.names = TRUE, fill = TRUE)
+    
+    dt[, `:=`(
+      precision_adj = safe_div(TP_adj, TP_adj + FP_adj),
+      recall_adj    = safe_div(TP_adj, TP_adj + FN_adj),
+      precision_ort = safe_div(TP_ort, TP_ort + FP_ort),
+      recall_ort    = safe_div(TP_ort, TP_ort + FN_ort)
+    )]
+    dt[, `:=`(
+      f1_adj = safe_div(2 * precision_adj * recall_adj, precision_adj + recall_adj),
+      f1_ort = safe_div(2 * precision_ort * recall_ort, precision_ort + recall_ort)
+    )]
+    
+    dt
   }
   
   dt_eval <- build_eval_table(
     fit = fit,
-    methods = c("baseline", "waldcloud","unifcloud_001","unifcloud_01","bootstrap"),
-    algos   = c("pc","boss"),
-    targets = c("G0","G0hat","Ghat"),
-    nTarget = nTarget,
-    ITER    = ITER
+    methods = c("baseline","waldcloud","unifcloud_001","unifcloud_01","unifcloud_02","bootstrap"),
+    algos = c("pc","boss"),
+    targets = c("G0","G0hat"),
+    nTarget = nTarget
   )
   
-  safe_div <- function(num, den) ifelse(den == 0, NA_real_, num / den)
-  dt_eval[, `:=`(
-    precision_adj = safe_div(TP_adj, TP_adj + FP_adj),
-    recall_adj    = safe_div(TP_adj, TP_adj + FN_adj),
-    precision_ort = safe_div(TP_ort, TP_ort + FP_ort),
-    recall_ort    = safe_div(TP_ort, TP_ort + FN_ort)
-  )][, `:=`(
-    f1_adj        = safe_div(2 * precision_adj * recall_adj, precision_adj + recall_adj),
-    f1_ort        = safe_div(2 * precision_ort * recall_ort, precision_ort + recall_ort)
-  )]
-
 }
-
-
 dt_eval[method=="baseline"]
 
+## Plotting
+### Functions
 { # Plot
   dt_plot <- melt(
     dt_eval,
@@ -452,8 +636,8 @@ dt_eval[method=="baseline"]
                                  algo_pick = "pc",
                                  eval_type_pick = "adj",
                                  metric_pick = "precision",
-                                 method_levels = c("baseline","waldcloud","unifcloud_001","unifcloud_01","bootstrap"),
-                                 target_levels = c("G0","G0hat","Ghat")) {
+                                 method_levels,
+                                 target_levels= c("G0", "G0hat")) {
     
     df <- dt_nt_median[
       algo == algo_pick &
@@ -462,14 +646,19 @@ dt_eval[method=="baseline"]
     ]
     
     df[, method := factor(method, levels = method_levels)]
-    df[, target := factor(target, levels = target_levels)]
+    df[, target := factor(target,   levels = c("G0", "G0hat"),
+                          labels = c("Compared to G0", "Compared to G0hat"))]
     
     ggplot(df, aes(x = method, y = score_med, fill = target)) +
-      geom_boxplot(position = position_dodge(width = 0.8), outlier.size = 0.7) +
+      geom_boxplot(position = position_dodge(width = 0.8), outlier.size = 0.7, show.legend = FALSE) +
+      facet_wrap(~ target, nrow = 1) +
+      scale_y_continuous(limits = c(0, 1)) +
+      #coord_flip() +
       labs(
         x = "Method",
-        y = paste0("Median ", metric_pick, " (per nT)"),
-        title = paste0(toupper(algo_pick), " — ", eval_type_pick, " ", metric_pick, " (median over i)"),
+        y = NULL,
+        #y = paste0("Median ", metric_pick, " (per graph)"),
+        title = paste0(toupper(algo_pick), " — ", eval_type_pick, " ", metric_pick, " (Median per graph)"),
         fill = "Compared to"
       ) +
       theme_bw() +
@@ -478,28 +667,55 @@ dt_eval[method=="baseline"]
   
   
 }
-par(mfrow=c(2,3))
-plot_nt_median_box(dt_nt_median, algo_pick="pc", eval_type_pick="adj", metric_pick="precision")
-plot_nt_median_box(dt_nt_median, algo_pick="pc", eval_type_pick="adj", metric_pick="recall")
-plot_nt_median_box(dt_nt_median, algo_pick="pc", eval_type_pick="adj", metric_pick="f1")
-plot_nt_median_box(dt_nt_median, algo_pick="pc", eval_type_pick="orient", metric_pick="precision")
-plot_nt_median_box(dt_nt_median, algo_pick="pc", eval_type_pick="orient", metric_pick="recall")
-plot_nt_median_box(dt_nt_median, algo_pick="pc", eval_type_pick="orient", metric_pick="f1")
 
-plot_nt_median_box(dt_nt_median, algo_pick="boss", eval_type_pick="adj", metric_pick="precision")
-plot_nt_median_box(dt_nt_median, algo_pick="boss", eval_type_pick="adj", metric_pick="recall")
-plot_nt_median_box(dt_nt_median, algo_pick="boss", eval_type_pick="adj", metric_pick="f1")
-plot_nt_median_box(dt_nt_median, algo_pick="boss", eval_type_pick="orient", metric_pick="precision")
-plot_nt_median_box(dt_nt_median, algo_pick="boss", eval_type_pick="orient", metric_pick="recall")
-plot_nt_median_box(dt_nt_median, algo_pick="boss", eval_type_pick="orient", metric_pick="f1")
+### Draw and Save
+{
+  dt_nt_median<- dt_nt_median[target!="Ghat"]
+  methods.level<- c("baseline", "bootstrap", "waldcloud", "unifcloud_001", "unifcloud_01", "unifcloud_02")
+  #methods.level<- unique(dt_nt_median$method)
+  #methods.level<- c("unifcloud_02", "unifcloud_01","unifcloud_001", "waldcloud", "bootstrap","baseline")
+  
+  p1<- plot_nt_median_box(dt_nt_median, algo_pick="pc", eval_type_pick="adj", metric_pick="precision", methods.level)
+  p2<- plot_nt_median_box(dt_nt_median, algo_pick="pc", eval_type_pick="adj", metric_pick="recall", methods.level)
+  p3<- plot_nt_median_box(dt_nt_median, algo_pick="pc", eval_type_pick="adj", metric_pick="f1", methods.level)
+  p4<- plot_nt_median_box(dt_nt_median, algo_pick="pc", eval_type_pick="orient", metric_pick="precision", methods.level)
+  p5<- plot_nt_median_box(dt_nt_median, algo_pick="pc", eval_type_pick="orient", metric_pick="recall", methods.level)
+  p6<- plot_nt_median_box(dt_nt_median, algo_pick="pc", eval_type_pick="orient", metric_pick="f1",methods.level)
+  #ggpubr::ggarrange(p1,p2,p3,p4,p5,p6,ncol=2,nrow=3,align = "h")
+  
+  fig <- ggarrange(p1, p4,  p2, p5,  p3, p6,  ncol = 2, nrow = 3,  align = "h")
+  fig <- ggpubr::annotate_figure(  fig,  top = text_grob(main_title,face = "bold", size = 14))
+  fig
+  ggplot2::ggsave(
+    filename = file.path(out_dir, paste0("PC ",gsub("[^[:alnum:]]+", "", main_title),".png")),
+    plot = fig,  width = 1200,   height = 1000,   units = "px")
+  
+  
+  p1<- plot_nt_median_box(dt_nt_median, algo_pick="boss", eval_type_pick="adj", metric_pick="precision",methods.level)
+  p2<- plot_nt_median_box(dt_nt_median, algo_pick="boss", eval_type_pick="adj", metric_pick="recall",methods.level)
+  p3<- plot_nt_median_box(dt_nt_median, algo_pick="boss", eval_type_pick="adj", metric_pick="f1",methods.level)
+  p4<- plot_nt_median_box(dt_nt_median, algo_pick="boss", eval_type_pick="orient", metric_pick="precision",methods.level)
+  p5<- plot_nt_median_box(dt_nt_median, algo_pick="boss", eval_type_pick="orient", metric_pick="recall",methods.level)
+  p6<- plot_nt_median_box(dt_nt_median, algo_pick="boss", eval_type_pick="orient", metric_pick="f1",methods.level)
+  #ggpubr::ggarrange(p1,p2,p3,p4,p5,p6,ncol=3,nrow=2)
+  
+  fig <- ggarrange(p1, p4,  p2, p5,  p3, p6,  ncol = 2, nrow = 3,  align = "h")
+  fig <- ggpubr::annotate_figure(  fig,  top = text_grob(main_title,face = "bold", size = 14))
+  fig
+  ggplot2::ggsave(
+    filename = file.path(out_dir, paste0("BOSS ",gsub("[^[:alnum:]]+", "", main_title),".png")),
+    plot = fig,  width = 1200,   height = 1000,   units = "px")
+  
+  
+}
 
 
-
-
+# ENSEMBLE ----------------------------------------------------------------
 
 # Ensemble results
-k <- 0.6  # proportion threshold
-methods <- c("waldcloud", "unifcloud_001", "unifcloud_01", "bootstrap")
+k <- 0.6  # proportion threshold, play with AUC
+methods <- c( "bootstrap","waldcloud", "unifcloud_001", "unifcloud_01","unifcloud_02")
+
 ensemble     <- setNames(vector("list", length(methods)), methods)
 ensemble.bin <- setNames(vector("list", length(methods)), methods)
 
@@ -523,7 +739,205 @@ for (m in methods) {
   }
 }
 
-ensemble.bin$waldcloud[[1]]$pc
+## Build a new method: ensemble, simply sum all edges
+fit.ensemble= NULL
+fit.ensemble$truth<- fit$truth
+fit.ensemble$optimal<- fit$optimal
+fit.ensemble$baseline<- fit$baseline
+fit.ensemble[[m]] <- setNames(vector("list", length(methods)), methods)
+for (m in methods) fit.ensemble[[m]] <- vector("list", nTarget)
+for (m in methods) {
+  for (nT in seq_len(nTarget)) {
+    pc_list <- fit[[m]][[nT]][["pc"]]
+    boss_list <- fit[[m]][[nT]][["boss"]]
+    
+    fit.ensemble[[m]][[nT]] <- list(
+      pc   = if (length(pc_list)) Reduce(`+`, pc_list)/length(pc_list) else NULL,
+      boss = if (length(boss_list)) Reduce(`+`, boss_list)/length(pc_list) else NULL
+    )
+  }
+}
+
+
+names(fit)
+names(fit.ensemble)
+
+
+
+# Build a function that converts ensemble into binary, then evaluate
+
+
+{
+  add_prf_cols <- function(dt) {
+    stopifnot(data.table::is.data.table(dt))
+    out <- data.table::copy(dt)
+    
+    # helpers: avoid NaN when denom=0
+    safe_div <- function(num, den) ifelse(den > 0, num / den, NA_real_)
+    
+    out[, `:=`(
+      precision_adj = safe_div(TP_adj, TP_adj + FP_adj),
+      recall_adj    = safe_div(TP_adj, TP_adj + FN_adj),
+      f1_adj        = {
+        p <- safe_div(TP_adj, TP_adj + FP_adj)
+        r <- safe_div(TP_adj, TP_adj + FN_adj)
+        ifelse(!is.na(p) & !is.na(r) & (p + r) > 0, 2 * p * r / (p + r), NA_real_)
+      },
+      
+      precision_ort = safe_div(TP_ort, TP_ort + FP_ort),
+      recall_ort    = safe_div(TP_ort, TP_ort + FN_ort),
+      f1_ort        = {
+        p <- safe_div(TP_ort, TP_ort + FP_ort)
+        r <- safe_div(TP_ort, TP_ort + FN_ort)
+        ifelse(!is.na(p) & !is.na(r) & (p + r) > 0, 2 * p * r / (p + r), NA_real_)
+      }
+    )]
+    
+    out
+  }
+  prep_dt_nt_median_from_eval <- function(dt_eval_like) {
+    stopifnot(data.table::is.data.table(dt_eval_like))
+    dt <- data.table::copy(dt_eval_like)
+    
+    # ensemble tables won't have i; create dummy so your code works unchanged
+    if (!"i" %in% names(dt)) dt[, i := 1L]
+    
+    dt_plot <- data.table::melt(
+      dt,
+      id.vars = c("method","algo","target","nT","i"),
+      measure.vars = c("precision_adj","recall_adj","f1_adj",
+                       "precision_ort","recall_ort","f1_ort"),
+      variable.name = "measure",
+      value.name = "score"
+    )
+    
+    dt_plot[, eval_type := ifelse(grepl("_adj$", measure), "adj", "orient")]
+    dt_plot[, metric := sub("_(adj|ort)$", "", measure)]
+    dt_plot[, measure := NULL]
+    
+    dt_plot[
+      , .(score_med = median(score, na.rm = TRUE)),
+      by = .(method, algo, target, nT, eval_type, metric)
+    ]
+  }
+  build_eval_table_ensemble_bin <- function(fit,
+                                            ensemble.bin,
+                                            methods = c("waldcloud","unifcloud_001","unifcloud_01","bootstrap"),
+                                            algos   = c("pc","boss"),
+                                            targets = c("G0","G0hat","Ghat"),
+                                            nTarget) {
+    stopifnot(!is.null(ensemble.bin))
+    
+    max_rows <- nTarget * length(methods) * length(algos) * length(targets)
+    rows <- vector("list", max_rows)
+    idx <- 0L
+    
+    for (algo in algos) {
+      for (nT in seq_len(nTarget)) {
+        
+        G0    <- fit$truth[[nT]]
+        G0hat <- fit$optimal[[algo]][[nT]]
+        Ghat  <- fit$baseline[[algo]][[nT]]
+        
+        for (m in methods) {
+          G_est <- ensemble.bin[[m]][[nT]][[algo]]
+          if (is.null(G_est)) {
+            stop("Missing ensemble.bin entry for method=", m, ", nT=", nT, ", algo=", algo)
+          }
+          
+          for (tgt in targets) {
+            G_true <- switch(
+              tgt,
+              G0    = G0,
+              G0hat = G0hat,
+              Ghat  = Ghat,
+              stop("Unknown target: ", tgt)
+            )
+            
+            out_mat <- eval_cda(true_adj = as.matrix(G_true),
+                                est_adj  = as.matrix(G_est))$out
+            
+            idx <- idx + 1L
+            rows[[idx]] <- cbind(
+              data.table(method = m,
+                         algo   = algo,
+                         target = tgt,
+                         nT     = nT,
+                         est_type = "ensemble_bin"),
+              out_to_row(out_mat)
+            )
+          }
+        }
+      }
+    }
+    
+    rbindlist(rows[seq_len(idx)], use.names = TRUE, fill = TRUE)
+  }
+  # build ensemble confusion table
+  tab_ensbin <- build_eval_table_ensemble_bin(
+    fit = fit,
+    ensemble.bin = ensemble.bin,
+    nTarget = nTarget
+  )
+  
+  # convert to precision/recall/f1 columns
+  tab_ensbin_eval <- add_prf_cols(tab_ensbin)
+  
+  # melt + median per nT (this produces eval_type/metric/score_med)
+  dt_nt_median_ens <- prep_dt_nt_median_from_eval(tab_ensbin_eval)
+  
+  plot_nt_median_box <- function(dt_nt_median,
+                                 algo_pick = "pc",
+                                 eval_type_pick = "adj",
+                                 metric_pick = "precision",
+                                 method_levels = c("baseline", "bootstrap", "waldcloud","unifcloud_001","unifcloud_01"),
+                                 target_levels = c("G0","G0hat","Ghat")) {
+    
+    df <- dt_nt_median[
+      algo == algo_pick &
+        eval_type == eval_type_pick &
+        metric == metric_pick
+    ]
+    
+    df[, method := factor(method, levels = method_levels)]
+    df[, target := factor(target, levels = target_levels)]
+    
+    has_i <- isTRUE(attr(dt_nt_median, "has_i"))
+    title_suffix <- if (has_i) "(median over i)" else "(ensemble)"
+    
+    ggplot2::ggplot(df, ggplot2::aes(x = method, y = score_med, fill = target)) +
+      ggplot2::geom_boxplot(position = ggplot2::position_dodge(width = 0.8),
+                            outlier.size = 0.7) +
+      ggplot2::labs(
+        x = "Method",
+        y = paste0("Median ", metric_pick, " (per nT)"),
+        title = paste0(toupper(algo_pick), " — ", eval_type_pick, " ", metric_pick, " ", title_suffix),
+        fill = "Compared to"
+      ) +
+      ggplot2::theme_bw() +
+      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 30, hjust = 1))
+  }
+  
+}
+
+# 
+dt_nt_median_ens<- dt_nt_median_ens[target!="Ghat"]
+p1 <- plot_nt_median_box(dt_nt_median_ens,   algo_pick = "pc",  eval_type_pick = "adj", metric_pick = "precision")
+p2 <- plot_nt_median_box(dt_nt_median_ens,   algo_pick = "pc",  eval_type_pick = "adj", metric_pick = "recall")
+p3 <- plot_nt_median_box(dt_nt_median_ens,   algo_pick = "pc",  eval_type_pick = "adj", metric_pick = "f1")
+p4 <- plot_nt_median_box(dt_nt_median_ens,   algo_pick = "pc",  eval_type_pick = "orient", metric_pick = "precision")
+p5 <- plot_nt_median_box(dt_nt_median_ens,   algo_pick = "pc",  eval_type_pick = "orient", metric_pick = "recall")
+p6 <- plot_nt_median_box(dt_nt_median_ens,   algo_pick = "pc",  eval_type_pick = "orient", metric_pick = "f1")
+ggpubr::ggarrange(p1,p2,p3,p4,p5,p6,ncol=3,nrow=2)
+
+p1 <- plot_nt_median_box(dt_nt_median_ens,   algo_pick = "boss",  eval_type_pick = "adj", metric_pick = "precision")
+p2 <- plot_nt_median_box(dt_nt_median_ens,   algo_pick = "boss",  eval_type_pick = "adj", metric_pick = "recall")
+p3 <- plot_nt_median_box(dt_nt_median_ens,   algo_pick = "boss",  eval_type_pick = "adj", metric_pick = "f1")
+p4 <- plot_nt_median_box(dt_nt_median_ens,   algo_pick = "boss",  eval_type_pick = "orient", metric_pick = "precision")
+p5 <- plot_nt_median_box(dt_nt_median_ens,   algo_pick = "boss",  eval_type_pick = "orient", metric_pick = "recall")
+p6 <- plot_nt_median_box(dt_nt_median_ens,   algo_pick = "boss",  eval_type_pick = "orient", metric_pick = "f1")
+ggpubr::ggarrange(p1,p2,p3,p4,p5,p6,ncol=3,nrow=2)
+
 
 algorithms <- names(ensemble.bin)
 compare_res <- setNames(vector("list", length(algorithms)), algorithms)

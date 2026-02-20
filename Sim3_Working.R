@@ -12,16 +12,15 @@ source_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1-
 source_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR-CDA/boss_py.py")
 
 
-# On time Simulation -----------------------------------------------------
+# One time Simulation -----------------------------------------------------
 p= 12L; ad= 3L; asy.n= 200L; ITER=300L
 ps= p*(p-1)/2
-#alpha1<- 0.05   # alpha1= 1 minus coveragelevel
+#alpha1<- 0.05   # alpha1= 1 minus coverage level
 alpha2<- 0.01   # used in CI test
 {
   # Truth Layer:
   Target = er_dag_py(p=p, ad=ad, n= asy.n, K=1L)  # Consists of K data sets
   G0 <- Target$G
-  #print(G0)
   R0 <- Target$R
   X<- Target$X[1,,]   # The only observed data
   Rhat<- cor(X)
@@ -524,7 +523,7 @@ perf_ort.boss_bootstrap <- perf_ort.boss_unifcloud_02 <- perf_ort.boss_unifcloud
   for(nT in 1:nTarget){
     cat(Sys.time(),";Iteration:", nT, "\n")
     # Truth Layer:
-    Target = er_dag_py(p=p, ad=ad, n= asy.n, K=2L)  # Consists of K data sets
+    Target = er_dag_py(p=p, ad=ad, n= asy.n, K=1L)  # Consists of K data sets
     G0 <- Target$G
     R0 <- Target$R
     X<- Target$X[1,,]   # The only observed data

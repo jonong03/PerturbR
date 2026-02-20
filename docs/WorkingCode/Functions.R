@@ -67,7 +67,8 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
   return(out)
 }
 # Generate Sample (Full Spread)
-rwaldcloud<- function(R0, n= 1e5, B=1, output="matrix"){
+rwaldcloud<- function(R0, n= 1e5, B=1, max.iter= B*10, output=c("full","lower")){
+  output <- match.arg(output)
   r0 <- R0[lower.tri(R0)]
   Psi0<- metaSEM::asyCov(R0, n = 1)
   d<- ncol(R0)
@@ -82,32 +83,54 @@ rwaldcloud<- function(R0, n= 1e5, B=1, output="matrix"){
   D<- diag(ps)
   diag(D)<- eig$values
   
-  z<- mvtnorm::rmvnorm(n= B, sigma= diag(ps))  
-  rhat<- r0 +U%*%sqrt(D/n)%*%matrix(z, ncol=B)
+  #z<- mvtnorm::rmvnorm(n= B, sigma= diag(ps))  
+  #rhat<- r0 +U%*%sqrt(D/n)%*%matrix(z, ncol=B)
   
   Rhat<- array(NA, dim=c(d,d,B))
-  for (b in 1:B){
-    Rhatb <- diag(d)
-    Rhatb[lower.tri(Rhatb)] <- rhat[,b]
-    Rhatb[upper.tri(Rhatb)] <- t(Rhatb)[upper.tri(Rhatb)]
-    Rhat[,,b]<- Rhatb
-  }  
+  rhat.keep <- matrix(NA, nrow=ps, ncol=B)
   
-  # Check which is PSD (TRUE)
-  is.psd<- sapply(1:B, function(b) all(eigen(Rhat[,,b])$values>0))
-  non.psd.count<- sum(!is.psd)
+  b <- 0
+  iter <- 0
+  non.psd.count <- 0
+  
+  while (b < B && iter < max.iter){
+    iter <- iter + 1
+    
+    z<- mvtnorm::rmvnorm(n=1, sigma=diag(ps))
+    rhatb<- r0 + U%*%sqrt(D/n)%*%matrix(z, ncol=1)
+    
+    Rhatb <- diag(d)
+    Rhatb[lower.tri(Rhatb)] <- rhatb[,1]
+    Rhatb[upper.tri(Rhatb)] <- t(Rhatb)[upper.tri(Rhatb)]
+    
+    if(all(eigen(Rhatb)$values > 0)){
+      b <- b + 1
+      Rhat[,,b] <- Rhatb
+      rhat.keep[,b] <- rhatb[,1]
+    } else{
+      non.psd.count <- non.psd.count + 1
+    }
+  }
   
   cat("non-PSD sample count:", non.psd.count, "\n")
   
-  if(output=="matrix"){
-    return(Rhat[,,is.psd])
+  if (b < B){
+    stop(paste0("Could not generate ", B, " PSD samples within max.iter = ", max.iter, "."))
+  }
+  
+  cat("non-PSD sample count:", non.psd.count, "\n")
+  
+  if(output=="full"){
+    return(Rhat)
   } else{
-    return(t(rhat[,is.psd]))
+    return(t(rhat.keep))
   }
   
 }
+
 # Generate Sample Randomly (1-alpha spread)
-runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output="matrix"){
+runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output=c("full","lower")){
+  output <- match.arg(output)
   r0 <- R0[lower.tri(R0)]
   Psi0<- metaSEM::asyCov(R0, n = 1)
   d<- ncol(R0)
@@ -153,5 +176,79 @@ runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output="matrix"){
     return(t(rhat_vech[,is.psd]))
   }
 }
+# Generate Sample Randomly (1-alpha spread) # updated
+runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, max.iter= B*10, output=c("full","lower")){
+  output <- match.arg(output)
+  r0 <- R0[lower.tri(R0)]
+  Psi0<- metaSEM::asyCov(R0, n = 1)
+  d<- ncol(R0)
+  ps<- length(r0)
+  
+  # Eigen Decomposition and check if R0 (and Psi0) can be decomposed
+  eig<- eigen(Psi0)
+  if(qr(Psi0)$rank != ps) {
+    return(stop("Error: Covariance of R0 is not PSD"))
+  }
+  U<- eig$vectors
+  D<- diag(ps)
+  diag(D)<- eig$values
+  
+  # rescaling factor
+  q<- qchisq(p=1-alpha, df= ps)
+  
+  Rhat<- array(NA, dim=c(d,d,B))
+  rhat.keep <- matrix(NA, nrow=ps, ncol=B)
+  
+  b <- 0
+  iter <- 0
+  non.psd.count <- 0
+  
+  while (b < B && iter < max.iter){
+    iter <- iter + 1
+    
+    Z<- mvtnorm::rmvnorm(n=1, sigma=diag(ps))
+    Zs<- as.numeric(Z / sqrt(sum(Z^2)))   # unit direction # check norm =1 : rowSums(Zs^2)=1
+    radius <- runif(1)
+    r <- radius^(1/ps)                    # random radius
+    
+    rhatb<- r0 + U%*%sqrt(D/n)%*%matrix(Zs, ncol=1)*(sqrt(q)*r)
+    
+    Rhatb <- diag(d)
+    Rhatb[lower.tri(Rhatb)] <- rhatb[,1]
+    Rhatb[upper.tri(Rhatb)] <- t(Rhatb)[upper.tri(Rhatb)]
+    
+    if(all(eigen(Rhatb)$values > 0)){
+      b <- b + 1
+      Rhat[,,b] <- Rhatb
+      rhat.keep[,b] <- rhatb[,1]
+    } else{
+      non.psd.count <- non.psd.count + 1
+    }
+  }
+  
+  cat("non-PSD sample count:", non.psd.count, "\n")
+  
+  if (b < B){
+    stop(paste0("Could not generate ", B, " PSD samples within max.iter = ", max.iter, "."))
+  }
+  
+  if(output=="full"){
+    return(Rhat)
+  } else{
+    return(t(rhat.keep))
+  }
+}
 
+# Generate Correlation from bootstrapping data then compute correlation
+boot_cor <- function(X, asy.n, B) {
+  X <- as.matrix(X)
+  p <- ncol(X)
+  
+  arr <- array(NA_real_, dim = c(p, p, B))
+  for (b in seq_len(B)) {
+    boot_id <- sample.int(asy.n, size = asy.n, replace = TRUE)
+    arr[, , b] <- cor(X[boot_id, , drop = FALSE])
+  }
+  arr
+}
 
