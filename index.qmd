@@ -19,30 +19,6 @@ pacman::p_load(data.table, dplyr, plotly, rethinking, gt)
 
 This site documents on-going work toward quantifying how perturbations in correlation space affect the power and stability of causal discovery algorithms.
 
-# Notations
-
-$R$: True R, unknown
-
-$R_{obs}$: Observed R, typically estimate from sample data
-
-$R^{\prime}_{obs}$: Use superscript "$\prime$ " to denote a perturbed object
-
-$\rho$: $vech(R)$, the unique off-diagonal elements of $R$ matrix.
-
-$\hat\rho$: $vech(R_{obs})$, the unique off-diagonal elements of $R_{obs}$
-
-$\hat\rho^{\prime}$: $vech(R^{\prime}_{obs})$, the unique off-diagonal elements of $R^{\prime}_{obs}$
-
-$\mu$: population mean
-
-$\Sigma$: Covariance matrix
-
-$\Psi$: Covariance matrix of pearson correlation coefficient
-
-$d$: number of variables in data
-
-$p$: number of parameters (length of $\rho$) = $\frac{d(d-1)}{2}$
-
 # Inference for $\rho$
 
 Note: all the below theories have a corresponding z-transformed (variance stabilizing) approach. Details to be added later.
@@ -57,23 +33,22 @@ $$where:
 
 -   off-diagonal of $\Psi$:
 
-$$
-\psi_{jk,hm}
-\;=\;
-N\,\sigma_{jk,hm}
-\;=\;
-\frac{1}{2}\Big[
-(\rho_{jh}-\rho_{jk}\rho_{kh})(\rho_{km}-\rho_{kh}\rho_{hm})
-\;+\;
-(\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{kj}\rho_{jh})
-\;+\; \\
-(\rho_{jh}-\rho_{jm}\rho_{mh})(\rho_{km}-\rho_{kj}\rho_{jm})
-\;+\;
-(\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{km}\rho_{mh})
-\Big].
-$$
+    $$
+    \begin{aligned}
+    \psi_{jk,hm}
+    &= N\,\sigma_{jk,hm} \\
+    &= \frac{1}{2} \Big[
+    (\rho_{jh}-\rho_{jk}\rho_{kh})(\rho_{km}-\rho_{kh}\rho_{hm}) \\
+    &\quad + (\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{kj}\rho_{jh}) \\
+    &\quad + (\rho_{jh}-\rho_{jm}\rho_{mh})(\rho_{km}-\rho_{kj}\rho_{jm}) \\
+    &\quad + (\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{km}\rho_{mh})
+    \Big].
+    \end{aligned}
+    $$
 
 When $\rho$ is unknown, we use plug-in estimate $\hat\rho$. We also need to prove $\hat\Psi \xrightarrow{p} \Psi$.
+
+\[See Steiger (1990)\]
 
 ## Confidence region of $\rho$
 
@@ -672,6 +647,8 @@ Only comparing resampling processes: Bootstrap versus FastR
 ### Some other things
 
 1.  Perturbation radius versus SHD
+2.  Distribution of mahalnobis distance
+3.  Inspect BOSS, performance should not be that bad.
 
 # References
 
@@ -680,3 +657,27 @@ Only comparing resampling processes: Bootstrap versus FastR
 2.  Kummerfeld, E., Williams, L., & Ma, S. (2024). Power analysis for causal discovery. *International Journal of Data Science and Analytics*, *17*(3), 289–304. <https://doi.org/10.1007/s41060-023-00399-4>
 
 3.  **Steiger, J. H. (1990).** Structural model evaluation and modification: An interval estimation approach. *Multivariate Behavioral Research, 25*(2), 173-180.
+
+# Notations (depreciated)
+
+$R$: True R, unknown
+
+$R_{obs}$: Observed R, typically estimate from sample data
+
+$R^{\prime}_{obs}$: Use superscript "$\prime$ " to denote a perturbed object
+
+$\rho$: $vech(R)$, the unique off-diagonal elements of $R$ matrix.
+
+$\hat\rho$: $vech(R_{obs})$, the unique off-diagonal elements of $R_{obs}$
+
+$\hat\rho^{\prime}$: $vech(R^{\prime}_{obs})$, the unique off-diagonal elements of $R^{\prime}_{obs}$
+
+$\mu$: population mean
+
+$\Sigma$: Covariance matrix
+
+$\Psi$: Covariance matrix of pearson correlation coefficient
+
+$d$: number of variables in data
+
+$p$: number of parameters (length of $\rho$) = $\frac{d(d-1)}{2}$
