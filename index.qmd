@@ -548,7 +548,7 @@ Procedure:
 
     2.  For each graph, compare the ensemble {PC1 ... PC300} using a stability threshold with $G_0$ and $G_0hat$.
 
-        Stability threshold is currently set as 0.6. As discussed, will look into AUC.
+        Stability threshold is currently set as 0.6. **AUC part is not done.**
 
 Other details:
 
@@ -556,27 +556,29 @@ Other details:
 
 -   The x-axis below might be too blurry to read, but they are (from left to right): $no\ perturb$, $bootstrap$, $W(\hat{R})$, $U_{0.99}(\hat{R})$, $U_{0.90}(\hat{R})$, $U_{0.80}(\hat{R})$.
 
-    -   $W(\hat{R})$: Full Wald Cloud of $\hat{R}$, as described in [this section](#sec-sample-from-full-distribution-of-rho_0).
+    -   $W(\hat{R})$: Full wald cloud of $\hat{R}$, as described in [this section](#sec-sample-from-full-distribution-of-rho_0).
 
-    -   $U_{0.99}(\hat{R})$: $1-\alpha$ uniform wald cloud of $\hat{R}$, as described in [this section](#sec-uniform-samples-inside-the-confidence-region-of-rho_0).
+    -   $U_{0.99}(\hat{R})$: 99% uniform wald cloud of $\hat{R}$, as described in [this section](#0).
+
+Below is one set of simulation: (p=30, ad=2). I am trying to generate more results but it takes some time.
 
 **PC**
 
-![](docs/plots/Performance/0_PC Individual (200Graphsp30ad2eachwith300resamplesn300alpha001).png)
+![](docs/plots/Performance/0_PC%20Individual%20(200Graphsp30ad2eachwith300resamplesn300alpha001).png)
 
 ------------------------------------------------------------------------
 
-![](docs/plots/Performance/2_PC Ensemble (200Graphsp30ad2eachwith300resamplesn300alpha001).png)
+![](docs/plots/Performance/2_PC%20Ensemble%20(200Graphsp30ad2eachwith300resamplesn300alpha001).png)
 
 ------------------------------------------------------------------------
 
 **BOSS**
 
-![](docs/plots/Performance/1_BOSS Individual (200Graphsp30ad2eachwith300resamplesn300alpha001).png)
+![](docs/plots/Performance/1_BOSS%20Individual%20(200Graphsp30ad2eachwith300resamplesn300alpha001).png)
 
 ------------------------------------------------------------------------
 
-![](docs/plots/Performance/3_BOSS Ensemble (200Graphsp30ad2eachwith300resamplesn300alpha001).png)
+![](docs/plots/Performance/3_BOSS%20Ensemble%20(200Graphsp30ad2eachwith300resamplesn300alpha001).png)
 
 ## Simulation 4: Reverse Containment Rate
 
@@ -618,9 +620,9 @@ Only comparing resampling processes: Bootstrap versus FastR
 
 ![](docs/plots/CompareComputingResources/garbagecollections.png)
 
-# Others
+# Others & To-explore
 
-## Marginal inference approach
+### Marginal inference approach
 
 1.  We discussed instead of the joint-inference approach, we could sample $\hat\rho_{ij}$ independently from its asymptotic distribution $N(\rho_{ij}, 1-\rho_{ij}^2)$.
     1.  From simulation (similar to simulation 2 above), coverage of each $\hat\rho_{ij}$ is close to the nominal level when considered individually. However, when we consider the results across all $\rho_{ij}$ s jointly, the joint coverage from this marginal approach became poor. This is related to multiple testing problem.
@@ -631,9 +633,26 @@ Only comparing resampling processes: Bootstrap versus FastR
 
         ![](docs/plots/RejectionSamplingRate.png){width="399"}
 
-## KL Divergence
+### $\eta$ as a metric to to capture the amount of faithfulness?
+
+1.  How can we estimate $\eta$ ? Methods of moments should work.
+2.  Use case: given an observed correlation matrix, estimate $\eta$, we use this as a proxy to gauge whether our pertubation approach would work.
+
+### KL Divergence
 
 1.  Expectation of the logarithmic difference between two distribution P and Q. Further explore if KL divergence can be a stronger statistical distance than mahalanobis distance.
+
+### Sampling Idea (Bryan)
+
+1.  Construct a list of Rs that only contains Rhat (the sample correlation) to begin with
+
+2.  Uniformly pick a correlation matrix from your list of Rs (call it A)
+
+3.  Sample a new correlation matrix (call it B) using your sampling distribution (95% confidence region using wald distance) with A as the input correlation matrix
+
+4.  Check if Rhat is within Bs 95% confidence region and add B to your list of Rs if it is, otherwise do nothing
+
+5.  Go to step 2 (until Rs has reached a desired size)
 
 # References
 
