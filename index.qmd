@@ -562,6 +562,21 @@ Other details:
 
 Below is one set of simulation: (p=30, ad=2). I am trying to generate more results but it takes some time.
 
+**Interpretation:**
+
+1.  The difference between $G_0hat$ versus $G_0$ reflects finite sample variability. $G_0hat$ is a finite sample graph.
+2.  Comparing CDA to $G_0hat$ : reflects structural (in)stability, and no bias(?)
+3.  The first graph (comparing individual graphs), reflects algorithm sensitivity to perturbations.
+4.  The second graph (ensemble), reflects robustness of edges
+
+**Findings:**
+
+1.  Precision (both adjacency and orientation) drops more than recall.
+2.  Perturbations in wald introduces more extra edges (hence more false positives). Recall remains stable. Combining these two, true edges seems to be often detectable although we get more spurious findings.
+3.  Improved recall when precision dropped -\> Interpretation?
+4.  BOSS overall has poorer performance than PC. WHY?
+5.  
+
 **PC**
 
 ![](docs/plots/Performance/0_PC%20Individual%20(200Graphsp30ad2eachwith300resamplesn300alpha001).png)
@@ -585,16 +600,16 @@ Below is one set of simulation: (p=30, ad=2). I am trying to generate more resul
 Procedure:
 
 1.  Randomly sample a correlation matrix (characterized by a centrality parameter $\eta$ ), treat it as an observed correlation matrix $\hat{R}$.
-2.  Sample 1000 $R^*$s from $W(\hat{R})$
-3.  For each $R^*$ i=1,..., 1000, measure the mahalanobis distance between $R_i^*$ and $\hat{R}$:
+2.  Sample 1000 $R^{*}$'s from $W(\hat{R})$
+3.  For each $R^{*}$ (i=1,..., 1000), compute mahalanobis distance between $R_i^*$ and $\hat{R}$:
     1.  Here, we treat $R_i^*$ as the center
     2.  Estimate mahalanobis distance using the asymptotic covariance of $R_i^*$ : $\Psi(R_i^*)$
-4.  Instead of reporting the distance, we report:
-    1.  p-values (under the correct degree-of-freedom in H0).
+4.  Instead of reporting the distance, I'm reporting:
+    1.  p-values (assuming the degree-of-freedom I derived is correct).
     2.  How many $R_i^*$ were ill-defined
-    3.  Reverse containment rate: How many $R_i^*$ were "statistically indistinguishable" to $\hat{R}$ under a threshold value $\alpha_2$.
+    3.  Reverse containment rate: How many $R_i^*$ were "statistically indistinguishable" to $\hat{R}$ under a truncation value $\alpha_2$.
 
-Repeat over different $\hat{R}$ and sample sizes.
+Repeat over different $\hat{R}$s and sample sizes.
 
 ![NA proportion](docs/plots/ReverseContainment/NAprop.png)
 
@@ -653,6 +668,10 @@ Only comparing resampling processes: Bootstrap versus FastR
 4.  Check if Rhat is within Bs 95% confidence region and add B to your list of Rs if it is, otherwise do nothing
 
 5.  Go to step 2 (until Rs has reached a desired size)
+
+### Some other things
+
+1.  Perturbation radius versus SHD
 
 # References
 
