@@ -179,7 +179,7 @@
     "href": "index.html#simulation-4-compare-performance-based-on-different-sampling-approaches",
     "title": "3D Correlation Space",
     "section": "Simulation 4: Compare Performance based on different sampling approaches",
-    "text": "Simulation 4: Compare Performance based on different sampling approaches\nRecap first:\n\nEvaluation targets:\n\nGhat from the observed (non-perturbed, existing approach) Rhat\nindividual graphs,\nensemble graphs.\n\nBenchmark:\n\nG0 (Ghalo)\nG0hat (estimate from Rhalo)\n\n\n300 Graphs from DAO (Nodes: 10, AD: 2) , and each graphs consists of 200 Samples (R1…. R200). Type1 error for CI-test: 0.01.\nFirst Graph: Performance of individual graph\nSecond Graph: Performance of ensemble graph\nPC\n\n\n\nBOSS"
+    "text": "Simulation 4: Compare Performance based on different sampling approaches\nBenchmark targets:\n\n\\(G_0\\) (Ghalo): the true causal graph from DAO\n\\(G_0hat\\) : the graph obtained by running a CDA on the population matrix \\(R_0\\), using a finite sample size parameter.\n\nProcedure:\n\nGenerate 200 graphs from DAO (Nodes: 30, AD: 2), and each graph consists of 300 bootstrapped samples (R1…. R300).\nApply CDA (PC and BOSS) onto R1 through R300, get PC1 … PC300 and BOSS1 … BOSS300.\nReport performance:\n\nFor each graph, compare each PC1 … PC300 with \\(G_0\\) and \\(G_0hat\\), report median score.\nFor each graph, compare the ensemble {PC1 … PC300} using a stability threshold with \\(G_0\\) and \\(G_0hat\\).\nStability threshold is currently set as 0.6. As discussed, will look into AUC.\n\n\nOther details:\n\nType1 error for CI-test: 0.01. Sample Size = 300 for all resampling approaches except bootstrap (uses half).\nThe x-axis below might be too blurry to read, but they are (from left to right): \\(no\\ perturb\\), \\(bootstrap\\), \\(W(\\hat{R})\\), \\(U_{0.99}(\\hat{R})\\), \\(U_{0.90}(\\hat{R})\\), \\(U_{0.80}(\\hat{R})\\).\n\n\\(W(\\hat{R})\\): Full Wald Cloud of \\(\\hat{R}\\), as described in this section.\n\\(U_{0.99}(\\hat{R})\\): \\(1-\\alpha\\) uniform wald cloud of \\(\\hat{R}\\), as described in this section.\n\n\nPC\n\n\n\n\nBOSS"
   },
   {
     "objectID": "index.html#simulation-5-computing-resources",
@@ -187,5 +187,47 @@
     "title": "3D Correlation Space",
     "section": "Simulation 5: Computing Resources",
     "text": "Simulation 5: Computing Resources\nOnly comparing resampling processes: Bootstrap versus FastR\n\nSample 300 \\(\\hat{R}\\) s from each method -&gt; This considers one iteration.\nRuntime: Report median run time over 100 iterations.\nMemory usage: Report memory allocated and number of garbage collection."
+  },
+  {
+    "objectID": "index.html#new-visualization",
+    "href": "index.html#new-visualization",
+    "title": "3D Correlation Space",
+    "section": "New Visualization",
+    "text": "New Visualization\n\nPut all resampling space in one graph (full space, bootstrap, rwald, runifcloud)\nTry different positions: 1) R at center ; 2) R at the boundary"
+  },
+  {
+    "objectID": "index.html#simulation-5-reverse-containment-rate",
+    "href": "index.html#simulation-5-reverse-containment-rate",
+    "title": "3D Correlation Space",
+    "section": "Simulation 5: Reverse Containment Rate",
+    "text": "Simulation 5: Reverse Containment Rate\n\n\n\nNA proportion\n\n\n\n\n\nMedianPvalue\n\n\n\n\n\nReverse Containment Rate when truncation = 0.001\n\n\n\n\n\nReverse Containment Rate when truncation = 0.01\n\n\n\n\n\nReverse Containment Rate when truncation = 0.1"
+  },
+  {
+    "objectID": "index.html#simulation-6-computing-resources",
+    "href": "index.html#simulation-6-computing-resources",
+    "title": "3D Correlation Space",
+    "section": "Simulation 6: Computing Resources",
+    "text": "Simulation 6: Computing Resources\nOnly comparing resampling processes: Bootstrap versus FastR\n\nSample 300 \\(\\hat{R}\\) s from each method -&gt; This considers one iteration.\nRuntime: Report median run time over 100 iterations.\nMemory usage: Report memory allocated and number of garbage collection."
+  },
+  {
+    "objectID": "index.html#kl-divergence",
+    "href": "index.html#kl-divergence",
+    "title": "3D Correlation Space",
+    "section": "KL Divergence",
+    "text": "KL Divergence\n\nExpectation of the logarithmic difference between two distribution P and Q. Further explore if KL divergence can be a stronger statistical distance than mahalanobis distance."
+  },
+  {
+    "objectID": "index.html#simulation-3-cda-power-analysis-based-on-different-perturbation-schemes",
+    "href": "index.html#simulation-3-cda-power-analysis-based-on-different-perturbation-schemes",
+    "title": "3D Correlation Space",
+    "section": "Simulation 3: CDA Power Analysis based on different perturbation schemes",
+    "text": "Simulation 3: CDA Power Analysis based on different perturbation schemes\nBenchmark targets:\n\n\\(G_0\\) (Ghalo): the true causal graph from DAO\n\\(G_0hat\\) : the graph obtained by running a CDA on the population matrix \\(R_0\\), using a finite sample size parameter.\n\nProcedure:\n\nGenerate 200 graphs from DAO (Nodes: 30, AD: 2), and each graph consists of 300 bootstrapped samples (R1…. R300).\nApply CDA (PC and BOSS) onto R1 through R300, get PC1 … PC300 and BOSS1 … BOSS300.\nReport performance:\n\nFor each graph, compare each PC1 … PC300 with \\(G_0\\) and \\(G_0hat\\), report median score.\nFor each graph, compare the ensemble {PC1 … PC300} using a stability threshold with \\(G_0\\) and \\(G_0hat\\).\nStability threshold is currently set as 0.6. As discussed, will look into AUC.\n\n\nOther details:\n\nType1 error for CI-test: 0.01. Sample Size = 300 for all resampling approaches except bootstrap (uses half).\nThe x-axis below might be too blurry to read, but they are (from left to right): \\(no\\ perturb\\), \\(bootstrap\\), \\(W(\\hat{R})\\), \\(U_{0.99}(\\hat{R})\\), \\(U_{0.90}(\\hat{R})\\), \\(U_{0.80}(\\hat{R})\\).\n\n\\(W(\\hat{R})\\): Full Wald Cloud of \\(\\hat{R}\\), as described in this section.\n\\(U_{0.99}(\\hat{R})\\): \\(1-\\alpha\\) uniform wald cloud of \\(\\hat{R}\\), as described in this section.\n\n\nPC\n\n\n\n\nBOSS"
+  },
+  {
+    "objectID": "index.html#simulation-4-reverse-containment-rate",
+    "href": "index.html#simulation-4-reverse-containment-rate",
+    "title": "3D Correlation Space",
+    "section": "Simulation 4: Reverse Containment Rate",
+    "text": "Simulation 4: Reverse Containment Rate\nProcedure:\n\nRandomly sample a correlation matrix (characterized by a centrality parameter \\(\\eta\\) ), treat it as an observed correlation matrix \\(\\hat{R}\\).\nSample 1000 \\(R^*\\)s from \\(W(\\hat{R})\\)\nFor each \\(R^*\\) i=1,…, 1000, measure the mahalanobis distance between \\(R_i^*\\) and \\(\\hat{R}\\):\n\nHere, we treat \\(R_i^*\\) as the center\nEstimate mahalanobis distance using the asymptotic covariance of \\(R_i^*\\) : \\(\\Psi(R_i^*)\\)\n\nInstead of reporting the distance, we report:\n\np-values (under the correct degree-of-freedom in H0).\nHow many \\(R_i^*\\) were ill-defined\nReverse containment rate: How many \\(R_i^*\\) were “statistically indistinguishable” to \\(\\hat{R}\\) under a threshold value \\(\\alpha_2\\).\n\n\nRepeat over different \\(\\hat{R}\\) and sample sizes.\n\n\n\nNA proportion\n\n\n\n\n\nMedianPvalue\n\n\n\n\n\nReverse Containment Rate when truncation = 0.001\n\n\n\n\n\nReverse Containment Rate when truncation = 0.01\n\n\n\n\n\nReverse Containment Rate when truncation = 0.1"
   }
 ]

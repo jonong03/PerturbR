@@ -43,6 +43,190 @@ $d$: number of variables in data
 
 $p$: number of parameters (length of $\rho$) = $\frac{d(d-1)}{2}$
 
+# Inference for $\rho$
+
+Note: all the below theories have a corresponding z-transformed (variance stabilizing) approach. Details to be added later.
+
+## Asymptotic Distribution
+
+Under standard regularity conditions: normality and finite asypmtotic covariance $\Psi \in R^{p \times p}$ (and also finite fourth-order moment), CLT shows that $$
+  \sqrt{n}(\hat{\rho}-\rho) \xrightarrow{d} N(0,\Psi)
+$$where:
+
+-   diagonal of $\Psi$: $\psi_{jk} = 1-\rho_{jk}^2$
+
+-   off-diagonal of $\Psi$:
+
+$$
+\psi_{jk,hm}
+\;=\;
+N\,\sigma_{jk,hm}
+\;=\;
+\frac{1}{2}\Big[
+(\rho_{jh}-\rho_{jk}\rho_{kh})(\rho_{km}-\rho_{kh}\rho_{hm})
+\;+\;
+(\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{kj}\rho_{jh})
+\;+\; \\
+(\rho_{jh}-\rho_{jm}\rho_{mh})(\rho_{km}-\rho_{kj}\rho_{jm})
+\;+\;
+(\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{km}\rho_{mh})
+\Big].
+$$
+
+When $\rho$ is unknown, we use plug-in estimate $\hat\rho$. We also need to prove $\hat\Psi \xrightarrow{p} \Psi$.
+
+## Confidence region of $\rho$
+
+Let $Z = \Psi^{-\frac{1}{2}}{\sqrt{n}}(\hat{\rho} - \rho)$, we have $Z \xrightarrow{d} N(0,I_p)$. Therefore, by continuous mapping theorem, $Z^TZ \xrightarrow{d} \chi^2_{p}$.
+
+Formally, consider the testing framework:
+
+$H_0: \rho = \rho_0$ vs $H_1: \rho \neq \rho_0$
+
+Under $H_0$,
+
+$$
+  \sqrt{n}(\hat{\rho}-\rho_0) \xrightarrow{d} N(0,\Psi)
+$$
+
+To test the hypothesis jointly for a $p$-length vector, consider the test statistic
+
+$$
+T = n(\hat{\rho} - \rho_0)^T\Psi^{-1}(\hat{\rho} - \rho_0)\ \leq \chi^{2}_{p, 1-\alpha}
+$$
+
+We previously show that $T  \xrightarrow{d} \chi^2_{p}$ under $H_0$. Therefore, when $T \geq \chi^2_{p, 1-\alpha}$, we reject $H_0$.
+
+The confidence region can be obtained through test inversion: $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho)^T\Psi^{-1}(\hat{\rho} - \rho)\ \leq \chi^{2}_{p, 1-\alpha} \}$.
+
+All perturbed vectors $\hat\rho^{\prime}$ satisfying the inequality are accepted as points inside the ellipsoid.
+
+When $\Psi$ is unknown, by slutsky theorem, $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho)^T\hat\Psi(\hat\rho)^{-1}(\hat{\rho} - \rho)\ \leq \chi^{2}_{p, 1-\alpha} \}$
+
+Note:
+
+1.  I do think the confidence ellipsoid should be the *intersect* of $C_{1-\alpha}$ [and]{style="color: red;"} the PSD criteria.
+2.  The plug-in approach is only true when $\hat\Psi \xrightarrow{p} \Psi$.
+
+## Generating random samples around $\rho_0$
+
+What are the different approach to generate random samples?
+
+1.  Generate MVN data based on $\hat\rho$ and compute its correlation vector $\hat\rho^{\prime}$
+2.  Generate $\hat\rho^{\prime}$ from $\hat\rho$ directly: sample randomly from the full distributional spread around $\rho_0$ (wald-cloud).
+
+### Sample from full distribution of $\rho_0$ {#sec-sample-from-full-distribution-of-rho_0}
+
+Let $\rho_0 = vech(R_0)$. For testing $H_0: \rho = \rho_0$, based on asymptotic normality of $\hat\rho$, we have wald-type statistic (same as previously mentioned)
+
+$$
+T = n (\hat\rho - \rho_0)^T \Psi(\rho_0)^{-1} (\hat\rho - \rho_0) \sim \chi^2_p
+$$
+
+This implies we can draw $\hat\rho$ under the null distribution $H_0$:
+
+$$
+\hat\rho^{(b)} \sim N_p(\rho_0, \frac{\Psi(\rho_0)}{n})
+$$
+
+Equivalently, the linear algebra approach:
+
+$\hat\rho^{(b)} = \rho_0 + Lz$, where $z \sim N(0,I_p)$, $L= \frac{1}{\sqrt{n}}UD^\frac{1}{2}$ (eigen-decomposition of $\Psi(\rho_0)$: $U$ is the eigenvectors , $D$ is the eigenvalue matrix)
+
+This should give us below statement when $n$ is infinite, $$
+Pr_{\rho_0} (\rho \in C_{1-\alpha}(\hat\rho)) = 1-\alpha 
+$$
+
+### Uniform samples inside the confidence region of $\rho_0$ {#sec-uniform-samples-inside-the-confidence-region-of-rho_0}
+
+The goal is to generate **uniform** and **random** samples **within** $C_{1-\alpha}(\rho_0)$ with guarantee: $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho_0)^T\Psi^{-1}(\hat{\rho} - \rho_0)\ \leq \chi^{2}_{p, 1-\alpha} \}$
+
+Modifying from the wald-cloud approach (matrix notation), a random uniform sample can be constructed by:
+
+$$
+\hat\rho^{(b)} = \rho_0 + L(\sqrt{c} r^{\frac{1}{p}}Z)
+$$
+
+where $c: \chi^2_{p, 1-\alpha}$, $r$ represent a random radius sample from $Unif(0,1)$, $Z$ represents the random unit direction, sample from $N(0,I_p)$ and rescale to have length (norm) 1 (i.e. $||Z|| = 1$)
+
+My intuition on this:
+
+$c$ sets the $1-\alpha$ chi-square cut-off that determines the confidence ellipsoid boundary; $r$ distributes a random radius (between (0,1)) uniformly in all $p$-dimension within the ellipsoid; $Z$ is the standard way to generate uniform random directions on a unit sphere. Geometrically, multiplying these three objects to $L$is like rotating and scaling the ellipsoid.
+
+**Notes:**
+
+1.  We are limiting the samples within $C_{1-\alpha}$ as well they have equal "weights" (hence uniform), the Mahalanobis distance is no longer a valid chi-square statistic. (Is this important to further deep-dive? Use the resulting distribution to calibrate more easily if the distribution is in simple closed form?)
+
+2.  To be more exact, the uniformity refers to the ratio of the sample ellipsoid volume to the CI ellipsoid's volume. Proof:
+
+    Given any point $\rho$, we have
+
+    $$
+    E(c) = \{ \rho : n(\rho - \rho_0)^T \Psi(\rho_0)^{-1} (\rho - \rho_0) \leq c \}
+    $$
+
+    where $c=\chi^2_{p, 1-\alpha}$
+
+    Now suppose we have a random $\rho$ from $\rho_0$ that is measured by a distance $t$, we have:
+
+    $$
+    \rho(t) = \rho_0+ \sqrt{\frac{t}{c}} (\rho - \rho_0)
+    $$ Then
+
+    $$
+    \begin{aligned}
+    (\rho(t) - \rho_0)^T\Psi(\rho_0)^{-1} (\rho(t) - \rho_0) 
+    &= (\sqrt{\frac{t}{c}} (\rho - \rho_0))^T\Psi(\rho_0)^{-1} (\sqrt{\frac{t}{c}} (\rho - \rho_0)) \\  
+    &=
+    \frac{t}{c} (\rho - \rho_0))^T\Psi(\rho_0)^{-1} (\rho - \rho_0)) \\&= \frac{t}{c} \frac{c}{n} \\ &= \frac{t}{n}
+    \end{aligned}
+    $$ Therefore,
+
+    $$
+    \begin{aligned}
+    \frac{V(E(\rho(t))}{V(E(c))} &= \frac{V(\rho_0+ \sqrt{\frac{t}{c}} (\rho - \rho_0))}{V(E(c))} \\ &= \frac{(\sqrt{\frac{t}{c}})^p \cdot V(\rho))}{V(E(c))} \\ &= \frac{(\sqrt{\frac{t}{c}})^p \cdot V(E(c)))}{V(E(c))} \\ &= (\sqrt{\frac{t}{c}})^p \\ &= (\frac{t}{c})^{(p/2)}
+    \end{aligned}
+    $$
+
+    Note: The distance $t$ is exactly the mahalanobis distance of a sample to $\rho_0$. This ratio should be approximately $Unif(0,1)$.
+
+    \[Attach Example\]
+
+### Visualization of random uniform samples
+
+::: {style="display:grid; grid-template-columns: 1fr; gap: 12px;"}
+<iframe src="plots/p1unif.html" width="100%" height="520" style="border:0;">
+
+</iframe>
+
+<iframe src="plots/p2unif.html" width="100%" height="520" style="border:0;">
+
+</iframe>
+
+<iframe src="plots/p3unif.html" width="100%" height="520" style="border:0;">
+
+</iframe>
+
+<iframe src="plots/p4unif.html" width="100%" height="520" style="border:0;">
+
+</iframe>
+:::
+
+Why don't we use the first approach (generate data then compute correlation) ?
+
+1.  Making extra assumption: This approach assumes the underlying data distribution, which seems to be unnecessary here in our theory. We only need $\hat\rho$ to be normal (asymptotically).
+2.  To meet out goal as a less expensive approach for resampling. Sample from $\rho$ directly will be a less expensive approach.
+
+Notes:
+
+1.  Previously discuss a sphere-cloud approach, I modified it to the "wald-cloud" (approach 2) above, this is to consider the covariance of correlation under null.
+2.  The rank deficient problem and implications:
+    1.  Given a $\rho_0$, if $\Psi(\rho_0)$ is rank-deficient, the above approach will not be feasible. Either choose a different $\rho_0$ , or use a different approach to conduct inference.
+    2.  A few approaches we discussed so far:
+        1.  Z-transformation on $\rho$ to stabilize variance. (not included yet)
+
+        2.  Only work within the rank-reduced space; the "null-space" will be treated as "constraints". In this case, degree of freedom will be reduced. Also, is it still chi-square?
+
 # Visualizing $\rho$ Space
 
 ## Correlation space for 3 variables ($d$ = 3)
@@ -238,189 +422,10 @@ p20 <- p2 %>%
 p20
 ```
 
-# Inference for $\rho$
+## New Visualization
 
-Note: all the below theories have a corresponding z-transformed (variance stabilizing) approach. Details to be added later.
-
-## Asymptotic Distribution
-
-Under standard regularity conditions: normality and finite asypmtotic covariance $\Psi \in R^{p \times p}$ (and also finite fourth-order moment), CLT shows that $$
-  \sqrt{n}(\hat{\rho}-\rho) \xrightarrow{d} N(0,\Psi)
-$$where:
-
--   diagonal of $\Psi$: $\psi_{jk} = 1-\rho_{jk}^2$
-
--   off-diagonal of $\Psi$:
-
-$$
-\psi_{jk,hm}
-\;=\;
-N\,\sigma_{jk,hm}
-\;=\;
-\frac{1}{2}\Big[
-(\rho_{jh}-\rho_{jk}\rho_{kh})(\rho_{km}-\rho_{kh}\rho_{hm})
-\;+\;
-(\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{kj}\rho_{jh})
-\;+\; \\
-(\rho_{jh}-\rho_{jm}\rho_{mh})(\rho_{km}-\rho_{kj}\rho_{jm})
-\;+\;
-(\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{km}\rho_{mh})
-\Big].
-$$
-
-When $\rho$ is unknown, we use plug-in estimate $\hat\rho$. We also need to prove $\hat\Psi \xrightarrow{p} \Psi$.
-
-## Confidence region of $\rho$
-
-Let $Z = \Psi^{-\frac{1}{2}}{\sqrt{n}}(\hat{\rho} - \rho)$, we have $Z \xrightarrow{d} N(0,I_p)$. Therefore, by continuous mapping theorem, $Z^TZ \xrightarrow{d} \chi^2_{p}$.
-
-Formally, consider the testing framework:
-
-$H_0: \rho = \rho_0$ vs $H_1: \rho \neq \rho_0$
-
-Under $H_0$,
-
-$$
-  \sqrt{n}(\hat{\rho}-\rho_0) \xrightarrow{d} N(0,\Psi)
-$$
-
-To test the hypothesis jointly for a $p$-length vector, consider the test statistic
-
-$$
-T = n(\hat{\rho} - \rho_0)^T\Psi^{-1}(\hat{\rho} - \rho_0)\ \leq \chi^{2}_{p, 1-\alpha}
-$$
-
-We previously show that $T  \xrightarrow{d} \chi^2_{p}$ under $H_0$. Therefore, when $T \geq \chi^2_{p, 1-\alpha}$, we reject $H_0$.
-
-The confidence region can be obtained through test inversion: $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho)^T\Psi^{-1}(\hat{\rho} - \rho)\ \leq \chi^{2}_{p, 1-\alpha} \}$.
-
-All perturbed vectors $\hat\rho^{\prime}$ satisfying the inequality are accepted as points inside the ellipsoid.
-
-When $\Psi$ is unknown, by slutsky theorem, $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho)^T\hat\Psi(\hat\rho)^{-1}(\hat{\rho} - \rho)\ \leq \chi^{2}_{p, 1-\alpha} \}$
-
-Note:
-
-1.  I do think the confidence ellipsoid should be the *intersect* of $C_{1-\alpha}$ [and]{style="color: red;"} the PSD criteria.
-2.  The plug-in approach is only true when $\hat\Psi \xrightarrow{p} \Psi$.
-
-## Generating random samples around $\rho_0$
-
-What are the different approach to generate random samples?
-
-1.  Generate MVN data based on $\hat\rho$ and compute its correlation vector $\hat\rho^{\prime}$
-2.  Generate $\hat\rho^{\prime}$ from $\hat\rho$ directly: sample randomly from the full distributional spread around $\rho_0$ (wald-cloud).
-
-### Sample from full distribution of $\rho_0$
-
-Let $\rho_0 = vech(R_0)$. For testing $H_0: \rho = \rho_0$, based on asymptotic normality of $\hat\rho$, we have wald-type statistic (same as previously mentioned)
-
-$$
-T = n (\hat\rho - \rho_0)^T \Psi(\rho_0)^{-1} (\hat\rho - \rho_0) \sim \chi^2_p
-$$
-
-This implies we can draw $\hat\rho$ under the null distribution $H_0$:
-
-$$
-\hat\rho^{(b)} \sim N_p(\rho_0, \frac{\Psi(\rho_0)}{n})
-$$
-
-Equivalently, the linear algebra approach:
-
-$\hat\rho^{(b)} = \rho_0 + Lz$, where $z \sim N(0,I_p)$, $L= \frac{1}{\sqrt{n}}UD^\frac{1}{2}$ (eigen-decomposition of $\Psi(\rho_0)$: $U$ is the eigenvectors , $D$ is the eigenvalue matrix)
-
-This should give us below statement when $n$ is infinite, $$
-Pr_{\rho_0} (\rho \in C_{1-\alpha}(\hat\rho)) = 1-\alpha 
-$$
-
-### Uniform samples inside the confidence region of $\rho_0$
-
-The goal is to generate **uniform** and **random** samples **within** $C_{1-\alpha}(\rho_0)$ with guarantee: $C_{1-\alpha} = \{ \rho:  \ n(\hat{\rho} - \rho_0)^T\Psi^{-1}(\hat{\rho} - \rho_0)\ \leq \chi^{2}_{p, 1-\alpha} \}$
-
-Modifying from the wald-cloud approach (matrix notation), a random uniform sample can be constructed by:
-
-$$
-\hat\rho^{(b)} = \rho_0 + L(\sqrt{c} r^{\frac{1}{p}}Z)
-$$
-
-where $c: \chi^2_{p, 1-\alpha}$, $r$ represent a random radius sample from $Unif(0,1)$, $Z$ represents the random unit direction, sample from $N(0,I_p)$ and rescale to have length (norm) 1 (i.e. $||Z|| = 1$)
-
-My intuition on this:
-
-$c$ sets the $1-\alpha$ chi-square cut-off that determines the confidence ellipsoid boundary; $r$ distributes a random radius (between (0,1)) uniformly in all $p$-dimension within the ellipsoid; $Z$ is the standard way to generate uniform random directions on a unit sphere. Geometrically, multiplying these three objects to $L$is like rotating and scaling the ellipsoid.
-
-**Notes:**
-
-1.  We are limiting the samples within $C_{1-\alpha}$ as well they have equal "weights" (hence uniform), the Mahalanobis distance is no longer a valid chi-square statistic. (Is this important to further deep-dive? Use the resulting distribution to calibrate more easily if the distribution is in simple closed form?)
-
-2.  To be more exact, the uniformity refers to the ratio of the sample ellipsoid volume to the CI ellipsoid's volume. Proof:
-
-    Given any point $\rho$, we have
-
-    $$
-    E(c) = \{ \rho : n(\rho - \rho_0)^T \Psi(\rho_0)^{-1} (\rho - \rho_0) \leq c \}
-    $$
-
-    where $c=\chi^2_{p, 1-\alpha}$
-
-    Now suppose we have a random $\rho$ from $\rho_0$ that is measured by a distance $t$, we have:
-
-    $$
-    \rho(t) = \rho_0+ \sqrt{\frac{t}{c}} (\rho - \rho_0)
-    $$ Then
-
-    $$
-    \begin{aligned}
-    (\rho(t) - \rho_0)^T\Psi(\rho_0)^{-1} (\rho(t) - \rho_0) 
-    &= (\sqrt{\frac{t}{c}} (\rho - \rho_0))^T\Psi(\rho_0)^{-1} (\sqrt{\frac{t}{c}} (\rho - \rho_0)) \\  
-    &=
-    \frac{t}{c} (\rho - \rho_0))^T\Psi(\rho_0)^{-1} (\rho - \rho_0)) \\&= \frac{t}{c} \frac{c}{n} \\ &= \frac{t}{n}
-    \end{aligned}
-    $$ Therefore,
-
-    $$
-    \begin{aligned}
-    \frac{V(E(\rho(t))}{V(E(c))} &= \frac{V(\rho_0+ \sqrt{\frac{t}{c}} (\rho - \rho_0))}{V(E(c))} \\ &= \frac{(\sqrt{\frac{t}{c}})^p \cdot V(\rho))}{V(E(c))} \\ &= \frac{(\sqrt{\frac{t}{c}})^p \cdot V(E(c)))}{V(E(c))} \\ &= (\sqrt{\frac{t}{c}})^p \\ &= (\frac{t}{c})^{(p/2)}
-    \end{aligned}
-    $$
-
-    Note: The distance $t$ is exactly the mahalanobis distance of a sample to $\rho_0$. This ratio should be approximately $Unif(0,1)$.
-
-    \[Attach Example\]
-
-### Visualization of random uniform samples
-
-::: {style="display:grid; grid-template-columns: 1fr; gap: 12px;"}
-<iframe src="plots/p1unif.html" width="100%" height="520" style="border:0;">
-
-</iframe>
-
-<iframe src="plots/p2unif.html" width="100%" height="520" style="border:0;">
-
-</iframe>
-
-<iframe src="plots/p3unif.html" width="100%" height="520" style="border:0;">
-
-</iframe>
-
-<iframe src="plots/p4unif.html" width="100%" height="520" style="border:0;">
-
-</iframe>
-:::
-
-Why don't we use the first approach (generate data then compute correlation) ?
-
-1.  Making extra assumption: This approach assumes the underlying data distribution, which seems to be unnecessary here in our theory. We only need $\hat\rho$ to be normal (asymptotically).
-2.  To meet out goal as a less expensive approach for resampling. Sample from $\rho$ directly will be a less expensive approach.
-
-Notes:
-
-1.  Previously discuss a sphere-cloud approach, I modified it to the "wald-cloud" (approach 2) above, this is to consider the covariance of correlation under null.
-2.  The rank deficient problem and implications:
-    1.  Given a $\rho_0$, if $\Psi(\rho_0)$ is rank-deficient, the above approach will not be feasible. Either choose a different $\rho_0$ , or use a different approach to conduct inference.
-    2.  A few approaches we discussed so far:
-        1.  Z-transformation on $\rho$ to stabilize variance. (not included yet)
-
-        2.  Only work within the rank-reduced space; the "null-space" will be treated as "constraints". In this case, degree of freedom will be reduced. Also, is it still chi-square?
+1.  Put all resampling space in one graph (full space, bootstrap, rwald, runifcloud)
+2.  Try different positions: 1) R at center ; 2) R at the boundary
 
 # Simulation:
 
@@ -527,96 +532,77 @@ Given a $R_0$ (red dot), generate 1000 random samples, and run wald-test at $\al
 </iframe>
 :::
 
-## Simulation 3: CDA Power Analysis based on correlation perturbation \[To be corrected and updated\]
+## Simulation 3: CDA Power Analysis based on different perturbation schemes
 
-Goal: Relationship between $C_{1-\alpha}(\rho_0)$ and causal discovery performance of $\rho_0$. (need to break down a little more).
+Benchmark targets:
 
-> **Simulation Flow:**
->
-> **Input:**
->
-> 1.  $G_0$ and $\rho_0$ generated from DAO, with an assumed sample size $n$ \[Truth Layer\]
-> 2.  $\alpha_1$ as probability that the true parameter $\rho_0$ is excluded from the confidence region $C_{1-\alpha_1}(\rho_0)$,
-> 3.  $\alpha_2$ as significance level for conditional independent tests
-> 4.  number of replicates $B$ \[Observed Layer\]
->
-> **3A: for** $b$ $\leftarrow$ 1 to $B$:
->
-> 1.  Sample $\hat\rho^{(b)}$ from $C_{1-\alpha_1}(\rho_0)$
->
-> 2.  Estimate $\hat{G}^{(b)}$ with $\hat\rho^{(b)}$, $n$ and $\alpha_2$
->
-> 3.  Benchmark $\hat{G}^{(b)}$ with $G_0$, summarize performance: TP/FP/FN/TN of Adjacency and Orientation
->
-> **3B: for** $b$ $\leftarrow$ 1 to $B$:
->
-> 1.  Simulate MVN data $X^{(b)}$ from $G_0$ and $\rho_0$
->
-> 2.  Estimate $\hat\rho_X^{(b)}$
->
-> 3.  Estimate $\hat{G}_X^{(b)}$ with $\hat\rho_X^{(b)}$, $n$ and $\alpha_2$
->
-> 4.  Benchmark $\hat{G}_X^{(b)}$ with $G_0$, summarize performance
->
-> **return** CDA performance of $\hat{G}^{(b)}$ and $\hat{G}_X^{(b)}$
->
-> Vary $\alpha_1$ , Fix $\alpha_2$, $n$
+1.  $G_0$ (Ghalo): the true causal graph from DAO
+2.  $G_0hat$ : the graph obtained by running a CDA on the population matrix $R_0$, using a finite sample size parameter.
 
-<div>
+Procedure:
 
-</div>
+1.  Generate 200 graphs from DAO (Nodes: 30, AD: 2), and each graph consists of 300 bootstrapped samples (R1.... R300).
+2.  Apply CDA (PC and BOSS) onto R1 through R300, get PC1 ... PC300 and BOSS1 ... BOSS300.
+3.  Report performance:
+    1.  For each graph, compare each PC1 ... PC300 with $G_0$ and $G_0hat$, report median score.
 
-**Simulation results of one graph**
+    2.  For each graph, compare the ensemble {PC1 ... PC300} using a stability threshold with $G_0$ and $G_0hat$.
 
-![](docs/plots/onesim_pc_p20ad3.png)
+        Stability threshold is currently set as 0.6. As discussed, will look into AUC.
 
-![](docs/plots/onesim_boss_p20ad3.png)
+Other details:
 
-**Simulation results of another graph**
+-   Type1 error for CI-test: 0.01. Sample Size = 300 for all resampling approaches except bootstrap (uses half).
 
-![](docs/plots/onesim_pc_p20ad3_v2.png)
+-   The x-axis below might be too blurry to read, but they are (from left to right): $no\ perturb$, $bootstrap$, $W(\hat{R})$, $U_{0.99}(\hat{R})$, $U_{0.90}(\hat{R})$, $U_{0.80}(\hat{R})$.
 
-![](docs/plots/onesim_boss_p20ad3_v2.png)
+    -   $W(\hat{R})$: Full Wald Cloud of $\hat{R}$, as described in [this section](#sec-sample-from-full-distribution-of-rho_0).
 
-**Full sim:** Distribution of mean precision across 30 independently generated graphs. Nodes=12, Ad= 3
-
-![](docs/plots/fullsim30_pc_p12ad3_v1.png)
-
-![](docs/plots/fullsim30_boss_p12ad3_v1.png)
-
-I plan to introduce an "unobserved" layer in simulations 4 and 5, and benchmark perturbed samples against (1) the observed layer (should be similar to Sim2), (2) the unobserved layer.
-
-## Simulation 4: Compare Performance based on different sampling approaches
-
-Recap first:
-
-1.  Evaluation targets:
-    1.  Ghat from the observed (non-perturbed, existing approach) Rhat
-    2.  individual graphs,
-    3.  ensemble graphs.
-2.  Benchmark:
-    1.  G0 (Ghalo)
-    2.  G0hat (estimate from Rhalo)
-
-300 Graphs from DAO (Nodes: 10, AD: 2), and each graphs consists of 200 bootstrapped samples (R1.... R200). Type1 error for CI-test: 0.01. Sample Size = 20000.
-
-First Graph: Performance of individual graph
-
-Second Graph: Performance of ensemble graph
+    -   $U_{0.99}(\hat{R})$: $1-\alpha$ uniform wald cloud of $\hat{R}$, as described in [this section](#sec-uniform-samples-inside-the-confidence-region-of-rho_0).
 
 **PC**
 
-![]()
+![](docs/plots/Performance/0_PC Individual (200Graphsp30ad2eachwith300resamplesn300alpha001).png)
 
-![](docs/plots/Performance/PC%20v1%20(nodes10ad3nT200ITER300).png)
+------------------------------------------------------------------------
 
-![](docs/plots/Performance/PC%20ensemble%20(nodes10ad3nT200ITER300).png)
+![](docs/plots/Performance/2_PC Ensemble (200Graphsp30ad2eachwith300resamplesn300alpha001).png)
+
+------------------------------------------------------------------------
 
 **BOSS**
 
-![](docs/plots/Performance/BOSS%20v1%20(nodes10ad3nT200ITER300).png)
+![](docs/plots/Performance/1_BOSS Individual (200Graphsp30ad2eachwith300resamplesn300alpha001).png)
 
-![](docs/plots/Performance/BOSS%20ensemble%20(nodes10ad3nT200ITER300).png)
+------------------------------------------------------------------------
+
+![](docs/plots/Performance/3_BOSS Ensemble (200Graphsp30ad2eachwith300resamplesn300alpha001).png)
+
+## Simulation 4: Reverse Containment Rate
+
+Procedure:
+
+1.  Randomly sample a correlation matrix (characterized by a centrality parameter $\eta$ ), treat it as an observed correlation matrix $\hat{R}$.
+2.  Sample 1000 $R^*$s from $W(\hat{R})$
+3.  For each $R^*$ i=1,..., 1000, measure the mahalanobis distance between $R_i^*$ and $\hat{R}$:
+    1.  Here, we treat $R_i^*$ as the center
+    2.  Estimate mahalanobis distance using the asymptotic covariance of $R_i^*$ : $\Psi(R_i^*)$
+4.  Instead of reporting the distance, we report:
+    1.  p-values (under the correct degree-of-freedom in H0).
+    2.  How many $R_i^*$ were ill-defined
+    3.  Reverse containment rate: How many $R_i^*$ were "statistically indistinguishable" to $\hat{R}$ under a threshold value $\alpha_2$.
+
+Repeat over different $\hat{R}$ and sample sizes.
+
+![NA proportion](docs/plots/ReverseContainment/NAprop.png)
+
+![MedianPvalue](docs/plots/ReverseContainment/MedianPval.png)
+
+![Reverse Containment Rate when truncation = 0.001](docs/plots/ReverseContainment/ReverseContainmentRate_0001.png)
+
+![Reverse Containment Rate when truncation = 0.01](docs/plots/ReverseContainment/ReverseContainmentRate_001.png)
+
+![Reverse Containment Rate when truncation = 0.1](docs/plots/ReverseContainment/ReverseContainmentRate_01.png)
 
 ## Simulation 5: Computing Resources
 
@@ -644,6 +630,10 @@ Only comparing resampling processes: Bootstrap versus FastR
         This approach works in lower dimension, however became highly inefficient (large rejection rate) as dimension grows.
 
         ![](docs/plots/RejectionSamplingRate.png){width="399"}
+
+## KL Divergence
+
+1.  Expectation of the logarithmic difference between two distribution P and Q. Further explore if KL divergence can be a stronger statistical distance than mahalanobis distance.
 
 # References
 

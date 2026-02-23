@@ -1,6 +1,6 @@
 # Functions
 wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FALSE) {
-  # Rpop     : Target (true) correlation matrix
+  # Rpop     : Target (true) correlation matrix, this will be treated as the center and used to compute variance
   # Rsample  : Estimated correlation matrix
   # alpha    : Type I error rate
   # indep    : If TRUE, use only marginal variances (diagonal Psi)
