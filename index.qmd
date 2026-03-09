@@ -410,19 +410,21 @@ Goal: To assess whether the empirical distribution of the simulated Wald test st
 
 > **Simulation Flow:**
 >
-> **Input:** $\rho_0$, $\Psi(\rho_0)$, sample size $n$, significance level $\alpha$, number of replicates $B$
+> **Input:** True R $\rho_0$, sample size $n$, significance level $\alpha$, number of replicates $B$
 >
-> **Output:** Test statistic $T_b$
+> **Output:** Test statistic (mahalanobis distance) $T_b$
 >
 > **for** $b$ $\leftarrow$ 1 to $B$:
 >
 > 1.  Sample $\hat\rho^{(b)}$ from Wald-cloud (or equivalently, normal distribution)
 >
-> 2.  Compute covariance $\hat\Psi(\hat\rho^{(b)})$
+> 2.  Compute covariance $\Psi(\hat\rho^{(b)})$
 >
-> 3.  Compute test-statistic (mahalanobis distance): $T_b \leftarrow n(\hat{\rho}^{(b)}-\rho_{0})^{\top}[\hat\Psi(\rho_{0})]^{-1}(\hat{\rho}^{(b)}-\rho_{0})$
+> 3.  Compute test-statistic (mahalanobis distance): $T_b \leftarrow n(\hat{\rho}^{(b)}-\rho_{0})^{\top}[\Psi(\rho_{0})]^{-1}(\hat{\rho}^{(b)}-\rho_{0})$
 >
 > **return** $T_b$
+
+Note: When true variance is known, use $\Psi(\rho_0)$. When true variance is unknown, $\Psi(\hat\rho^{(b)})$ can be a good estimate of
 
 The histogram shows the **empirical distribution of the observed test statistics** $T_b$ from simulation, the red curve shows the **theoretical** $\chi^2$ density under $H_0$​.
 
@@ -570,7 +572,21 @@ Below is one set of simulation: (p=30, ad=2). I am trying to generate more resul
 
 ![](docs/plots/Performance/3_BOSS%20Ensemble%20(200Graphsp30ad2eachwith300resamplesn300alpha001).png)
 
-## Simulation 4: Reverse Containment Rate
+## Simulation 4: Reverse Containment for Wald Regions in R Space (need revision)
+
+Some notes for upcoming revision:
+
+1.  Inspect output from BOSS, results currently seem off.
+
+2.  Shift simulation design:
+
+    1.  Current: Generate Rhat from the TrueR , and then make perturbations around Rhat.
+    2.  New: Treat Rhat as one perturbation /realization of the TrueR.
+
+    Reasoning:
+
+    1.  Current approach reflects the real-data practical procedure. However it introduces an extra layer of noise (double-sampling). It answers the question: *How much does the graph change if I jiggle the data?* (Although we will need to argue which is the right way of jiggling it? around center? wald perturbations?)
+    2.  New approach aims to approximate the sampling distribution around the underlying correlation structure. It answers the question: *Which graphs are consistent with the population this data came from?*
 
 Procedure:
 
@@ -595,6 +611,53 @@ Repeat over different $\hat{R}$s and sample sizes.
 ![Reverse Containment Rate when truncation = 0.01](docs/plots/ReverseContainment/ReverseContainmentRate_001.png)
 
 ![Reverse Containment Rate when truncation = 0.1](docs/plots/ReverseContainment/ReverseContainmentRate_01.png)
+
+## Simulation 4 (Revised): Reverse Containment for Wald Regions in R Space
+
+**Procedure:**
+
+1.  Sample 100 $R_0$'s uniformly from the space of all $p$ x $p$ correlation matrices
+
+2.  \[ $R_0$ as the center \] For each $R_0$, take 1000 samples $\hat{R_i}$'s ***normally*** over the wald cloud $W(R_0)$
+
+3.  \[ $\hat{R_i}$ as the center \] For each $\hat{R_i}$ (i=1,..., 1000), compute its variance $\Psi(\hat{R_i})$, measure its mahalanobis distance $T_i$ with $R_0$ and using $\Psi(\hat{R_i})$.
+
+4.  Define reverse containment:
+
+    $$
+
+    $$
+
+    (better ideas on how to define containment?)
+
+5.  Output:
+
+    1.  distribution of mahalanobis distances:\
+        expect to follow chi-square distribution with the corresponding d.o.f.
+    2.  distribution of p-values:\
+        expect to follow $Unif(0,1)$ for proper calibration.
+    3.  Reverse containment rate: How many $\hat{R_i}$s were "statistically indistinguishable" to $R$ ? expect actual reverse containment rate $\approx$ nominal rate defined in step 4 : $1-\alpha$.
+    4.  How many $\hat{R_i}$ s are ill-defined (no full rank covariance)
+
+#### 
+
+#### Result of one R:
+
+![](docs/docs/plots/ReverseContainment2/nodes20eta5.png){width="696"}
+
+![](docs/docs/plots/ReverseContainment2/nodes20eta0.5.png)
+
+![](docs/docs/plots/ReverseContainment2/nodes40eta5.png)
+
+![Nodes:40, Excluding n = 500](docs/docs/plots/ReverseContainment2/nodes40eta5_qqwald.png){width="418"}
+
+![Nodes:40, Excluding n = 500](docs/docs/plots/ReverseContainment2/nodes40eta5_qqpval.png){fig-align="left" width="408"}
+
+#### Result of collective R's:
+
+![](docs/docs/plots/ReverseContainment2/RCRvsKappa_nodes20.png)
+
+![](docs/docs/plots/ReverseContainment2/RCRvsKappa_nodes30.png)
 
 ## Simulation 5: Computing Resources
 
@@ -627,6 +690,7 @@ Only comparing resampling processes: Bootstrap versus FastR
 
 1.  How can we estimate $\eta$ ? Methods of moments should work.
 2.  Use case: given an observed correlation matrix, estimate $\eta$, we use this as a proxy to gauge whether our pertubation approach would work.
+3.  Caveat: we only have one observation (sample correlation), how can $\eta$ still be estimated meaningfully?
 
 ### KL Divergence
 
@@ -643,6 +707,10 @@ Only comparing resampling processes: Bootstrap versus FastR
 4.  Check if Rhat is within Bs 95% confidence region and add B to your list of Rs if it is, otherwise do nothing
 
 5.  Go to step 2 (until Rs has reached a desired size)
+
+### Distributions:
+
+1.  If both true mean and covariance are unknown, and we used both sample mean and sample covariance to estimate / compute mahalanobis distance, the resulting distances could potentially follow something more conservative than chi-square, perhaps F/ Hotelling T2.
 
 ### Some other things
 

@@ -112,13 +112,13 @@ rwaldcloud<- function(R0, n= 1e5, B=1, max.iter= B*10, output=c("full","lower"))
     }
   }
   
+  cat("PSD sample count:", b, ";")
   cat("non-PSD sample count:", non.psd.count, "\n")
   
   if (b < B){
     stop(paste0("Could not generate ", B, " PSD samples within max.iter = ", max.iter, "."))
   }
   
-  cat("non-PSD sample count:", non.psd.count, "\n")
   
   if(output=="full"){
     return(Rhat)
