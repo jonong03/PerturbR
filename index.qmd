@@ -728,9 +728,9 @@ Procedure:
 
 Other notes: Burnin period was set as 20% of samples in the chain.
 
-#### 3 nodes
+### 3 nodes
 
-##### n= 50
+#### n= 50
 
 **Results, Trace Plots, ACF Plots**
 
@@ -742,7 +742,7 @@ Other notes: Burnin period was set as 20% of samples in the chain.
 
 ![](docs/docs/plots/ReverseContainment_MCMC/acf_plots_n50.png){width="651"}
 
-##### n= 500
+#### n= 500
 
 **Results, Trace Plots, ACF Plots**
 
@@ -754,7 +754,7 @@ Other notes: Burnin period was set as 20% of samples in the chain.
 
 ![](docs/docs/plots/ReverseContainment_MCMC/acf_plots_n500.png){width="693"}
 
-##### n= 5000
+#### n= 5000
 
 **Results, Trace Plots, ACF Plots**
 
@@ -765,6 +765,8 @@ Other notes: Burnin period was set as 20% of samples in the chain.
 ![](docs/docs/plots/ReverseContainment_MCMC/trace_plots_n5000.png){width="466"}
 
 ![](docs/docs/plots/ReverseContainment_MCMC/acf_plots_n5000.png){width="693"}
+
+### 30 nodes
 
 ## Simulation X: Computing Resources
 
