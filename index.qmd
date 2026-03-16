@@ -707,23 +707,64 @@ Repeat over different $\hat{R}$s and sample sizes.
 
 ## Simulation 5: MCMC Sampling
 
-#### n= 50
+Setup: Start with a graph $G$ that is parametrized by $R_0$. We observed data $X$ with sample size $n$ and derive sample correlation $S$.
 
-**Results**
+Procedure:
+
+1.  Initialize a chain $Q$ with $S$: $Q^{[0]} = S$
+
+2.  From $t=1, .... , B$:
+
+    Let $R$ denote current state: $Q^{[t]}$
+
+    1.  Sample $R' \sim W(R;\Psi(R, n))$
+    2.  Compute acceptance ratio: $A(R \rightarrow R') = \dfrac{f(R | R',n)}{f(R'|R,n)}\cdot\ I(S \in CR_{1-\alpha}(R') )$
+        -   $f(R| R',n)$ is the multivariate normal density of $R$ given $\mu = R'$ and $\Sigma = \Psi(R')/n$
+
+        -   $I(S \in CR_{1-\alpha}(R') )$ is an indicator function for the reverse containment status. $I(\cdot)=1$ if $S$ lies within the confidence region of $R'$ at level $1-\alpha$. The center is $R'$.
+
+            More specifically, it is checking the Mahalanobis distance between $S$ and $R'$ with $R'$ as the center: $(s−r′)^T \Psi(R′)^{-1}(s−r′)≤\chi^2_{d,1−α}​$, where $d=\frac{p(p-1)}{2}$.
+    3.  If $A(R→R′) >u$ where $u \sim Unif(0,1)$, accept $R'$: update $Q^{[t]} = R'$. Else, $Q^{[t]} = Q^{[t-1]} = R$
+
+Other notes: Burnin period was set as 20% of samples in the chain.
+
+#### 3 nodes
+
+##### n= 50
+
+**Results, Trace Plots, ACF Plots**
 
 ::: {style="display:grid; grid-template-columns: 1fr; gap: 12px;"}
-<iframe src="plots/ReverseContainment_MCMC/mcmc_cloud_n50.html", width="100%" height="520" style="border:0;">
-
-<iframe>
+<iframe src="docs/docs/plots/ReverseContainment_MCMC/mcmc_cloud_n50.html"  width="100%" height="520" style="border:0;"></iframe>
 :::
 
-**Trace Plot**
+![](docs/docs/plots/ReverseContainment_MCMC/trace_plots_n50.png){width="328"}
 
-![](docs/docs/plots/ReverseContainment_MCMC/trace_plots_n50.png){width="439" height="694"}
+![](docs/docs/plots/ReverseContainment_MCMC/acf_plots_n50.png){width="651"}
 
-**ACF** Plot
+##### n= 500
 
-![](docs/docs/plots/ReverseContainment_MCMC/acf_plots_n50.png)
+**Results, Trace Plots, ACF Plots**
+
+::: {style="display:grid; grid-template-columns: 1fr; gap: 12px;"}
+<iframe src="docs/docs/plots/ReverseContainment_MCMC/mcmc_cloud_n500.html"  width="100%" height="520" style="border:0;"></iframe>
+:::
+
+![](docs/docs/plots/ReverseContainment_MCMC/trace_plots_n500.png){width="466"}
+
+![](docs/docs/plots/ReverseContainment_MCMC/acf_plots_n500.png){width="693"}
+
+##### n= 5000
+
+**Results, Trace Plots, ACF Plots**
+
+::: {style="display:grid; grid-template-columns: 1fr; gap: 12px;"}
+<iframe src="docs/docs/plots/ReverseContainment_MCMC/mcmc_cloud_n5000.html"  width="100%" height="520" style="border:0;"></iframe>
+:::
+
+![](docs/docs/plots/ReverseContainment_MCMC/trace_plots_n5000.png){width="466"}
+
+![](docs/docs/plots/ReverseContainment_MCMC/acf_plots_n5000.png){width="693"}
 
 ## Simulation X: Computing Resources
 

@@ -20,15 +20,18 @@ source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projec
 source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/CDA/Scripts/Functions.R", local = TRUE)
 
 # Prep: Generate trueR
-p=3L; ad=2L; asy.n= 50L; NCHAIN= 20000L
+p=3L; ad=2L;  NCHAIN= 20000L; N= 50000L
 df<- m<- p*(p-1)/2  # degree of freedom
-Target <- er_dag_py(p = p, ad = ad, n = asy.n, K = 1L)
+Target <- er_dag_py(p = p, ad = ad, n = N, K = 1L, seed = 1323L)
 G0 <- Target$G
 R0 <- Target$R
-X <- Target$X[1,,]
 
+asy.n= 50L
+sampleid<- sample(N, asy.n)
+X <- Target$X[1,sampleid,]
 S <- cor(X)
 S; R0
+
 # S = rlkjcorr(1, K=3, eta = 5)
 kappa(S)
 # Step 0: Initiation of Chain
@@ -72,16 +75,26 @@ acceptrate
 burnin<- 1:(NCHAIN*0.20)
 
 # Check Reverse Containment: Each R should be compatible with S
-out<- sapply(c(1:NCHAIN)[-burnin], function(i) wald.test(Rsample=S, Rpop= RCHAIN[,,i])) %>% t()
+out<- sapply(c(1:NCHAIN)[-burnin], function(i) wald.test(Rsample=S, Rpop= RCHAIN[,,i], alpha= 0.05, asy.n= asy.n)) %>% t()
 pval<- sapply(1:nrow(out), function(i) out[,4][[i]])
-rcr<- mean(pval < 0.05)
+rcr<- mean(pval > 0.05)
 rcr
 summary(pval)
 
-waldCR <- runifcloud(R0=S, n = asy.n, B=NCHAIN, alpha = 0.05)
-out_wald<- sapply(1:NCHAIN, function(i) wald.test(Rsample=S, Rpop= waldCR[,,i])) %>% t()
-pval_wald<- sapply(1:nrow(out_wald), function(i) out_wald[,4][[i]])
-rcr_wald<- mean(pval_wald < 0.05)
+waldCR <- rwaldcloud(R0=S, n = asy.n, B=NCHAIN)
+pval_wald<- sapply(1:NCHAIN, function(i) {
+  out<- wald.test(Rsample=S, Rpop= waldCR[,,i], alpha= 0.05, asy.n= asy.n)
+  out$pval
+  })
+waldCR_in<- waldCR[,,which(pval_wald > 0.05)]
+pval_wald2<- sapply(1:sum(pval_wald> 0.05), function(i) {
+  out<- wald.test(Rsample=S, Rpop= waldCR_in[,,i], alpha= 0.05, asy.n= asy.n)
+  out$pval
+})
+mean(pval_wald > 0.05)
+mean(pval_wald2 > 0.05)
+rcr_wald<- mean(pval_wald2 > 0.05)
+rcr_wald
 
 # Plot --------------------------------------------------------------------
 {
@@ -113,7 +126,7 @@ rcr_wald<- mean(pval_wald < 0.05)
   )
   
   
-p<-plot_ly() %>%
+resultplot<-plot_ly() %>%
     add_markers(
       data = fullspace_df,
       x = ~r12,
@@ -128,7 +141,7 @@ p<-plot_ly() %>%
       x = c(0,0),
       y = c(0,0),
       z = c(0,0),
-      marker = list(size = 12, color ="black"),
+      marker = list(size = 8, color ="black"),
       name = "Identity Matrix"
     ) %>%
     add_markers(
@@ -154,7 +167,7 @@ p<-plot_ly() %>%
     x = ~r12,
     y = ~r13,
     z = ~r23,
-    marker = list(size = 12, color = "gold"),
+    marker = list(size = 8, color = "gold"),
     name = "R (unknown)"
   ) %>%
   add_markers(
@@ -162,7 +175,7 @@ p<-plot_ly() %>%
     x = ~r12,
     y = ~r13,
     z = ~r23,
-    marker = list(size = 15, color = "red"),
+    marker = list(size = 8, color = "red"),
     name = "S (observed)"
   ) %>%
     layout(
@@ -184,12 +197,12 @@ p<-plot_ly() %>%
     )
 }
 
-p
+resultplot
 
 library(htmlwidgets)
 
 savedir<- "~/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR/docs/docs/plots/ReverseContainment_MCMC/"
-saveWidget(p, paste0(savedir,"mcmc_cloud_n",asy.n,".html"), selfcontained = TRUE)
+saveWidget(resultplot, paste0(savedir,"mcmc_cloud_n",asy.n,".html"), selfcontained = TRUE)
 
 asy.n
 
