@@ -61,7 +61,7 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
   cricval<- qchisq(1 - alpha, df = df)
   pval<- as.numeric(pchisq(distance, df= df, lower.tail = F))
   reject= as.logical(distance >= cricval)
-  out = c(T=distance, df= df, cricval= as.numeric(cricval), pval= pval, reject= reject) 
+  out = data.frame(T=distance, df= df, cricval= as.numeric(cricval), pval= pval, reject= reject) 
   
   ## --- ellipsoid membership ---
   return(out)
