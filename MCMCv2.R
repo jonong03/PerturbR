@@ -10,7 +10,7 @@
 # Check: acceptance rate, calibration (p-value)
 
 rm(list=ls()); gc()
-pacman::p_load(metaSEM, dplyr, data.table, mvtnorm, rethinking, future.apply, parallel, parallelly, reticulate, pcalg, ggplot2, ggpubr)
+pacman::p_load(metaSEM, dplyr, data.table, mvtnorm, rethinking, future.apply, parallel, parallelly, reticulate, pcalg, ggplot2, ggpubr, plotly)
 
 use_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR-CDA/.venv/bin/python", required = TRUE)
 py_config() 
@@ -19,25 +19,26 @@ reticulate::source_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/
 source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR/docs/WorkingCode/Functions.R", local = TRUE)
 source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/CDA/Scripts/Functions.R", local = TRUE)
 
+# Acceptance Rate: ~55% (p=3), ~ 22% (p=5), ~2% (p=8). Sample Size = 500
+# ~0.01% (p=10), sample size = 50K
+
+
 # Prep: Generate trueR
 p=3L; ad=2L;  NCHAIN= 20000L; N= 50000L
 df<- m<- p*(p-1)/2  # degree of freedom
-Target <- er_dag_py(p = p, ad = ad, n = N, K = 1L, seed = 1323L)
+Target <- er_dag_py(p = p, ad = ad, n = N, K = 1L, seed = 1523L)
 G0 <- Target$G
-R0 <- Target$R
+R0 <- Target$R ; kappa(R0)
 
-asy.n= 50L
+asy.n= 5000L
 sampleid<- sample(N, asy.n)
 X <- Target$X[1,sampleid,]
-S <- cor(X)
-S; R0
+S <- cor(X); kappa(S)
 
 # S = rlkjcorr(1, K=3, eta = 5)
-kappa(S)
 # Step 0: Initiation of Chain
 RCHAIN<- array(NA, dim= c(p,p,NCHAIN))
 RCHAIN[,,1] <- S 
-
 
 accept <- 0
 
@@ -55,7 +56,9 @@ for (i in 2: NCHAIN){
   
   partA<- dmvnorm(x= rcurrent, mean = rs, sigma= Psi_Rs, log= T)
   partB<- dmvnorm(x= rs, mean= rcurrent, sigma= Psi_Rcurrent, log=T)
+  # Chi-square/ F-distribution
   partC<- wald.test(Rpop=Rs, Rsample= S, alpha= 0.05, asy.n= asy.n)  # Rstar is at the center
+  #cat(partA,"\n")
   IR   <- partC$pval >0.05
   # partC$pval < 0.05  # if p-val< 0.05, reject, outside of 95% CR
   logMH = partA - partB 
@@ -77,15 +80,18 @@ burnin<- 1:(NCHAIN*0.20)
 # Check Reverse Containment: Each R should be compatible with S
 out<- sapply(c(1:NCHAIN)[-burnin], function(i) wald.test(Rsample=S, Rpop= RCHAIN[,,i], alpha= 0.05, asy.n= asy.n)) %>% t()
 pval<- sapply(1:nrow(out), function(i) out[,4][[i]])
+hist(pval)
 rcr<- mean(pval > 0.05)
 rcr
 summary(pval)
 
+# Generate wald cloud, inverse test (reverse containment)
 waldCR <- rwaldcloud(R0=S, n = asy.n, B=NCHAIN)
 pval_wald<- sapply(1:NCHAIN, function(i) {
   out<- wald.test(Rsample=S, Rpop= waldCR[,,i], alpha= 0.05, asy.n= asy.n)
   out$pval
   })
+hist(pval_wald)
 waldCR_in<- waldCR[,,which(pval_wald > 0.05)]
 pval_wald2<- sapply(1:sum(pval_wald> 0.05), function(i) {
   out<- wald.test(Rsample=S, Rpop= waldCR_in[,,i], alpha= 0.05, asy.n= asy.n)
@@ -120,9 +126,9 @@ rcr_wald
     r23 = R0[2,3]
   )
   waldCR_df<- data.frame(
-    r12= waldCR[1,2,],
-    r13= waldCR[1,3,],
-    r23= waldCR[2,3,]
+    r12= waldCR_in[1,2,],
+    r13= waldCR_in[1,3,],
+    r23= waldCR_in[2,3,]
   )
   
   
@@ -133,7 +139,7 @@ resultplot<-plot_ly() %>%
       y = ~r13,
       z = ~r23,
       marker = list(size = 2, color = "gray"),
-      opacity = 0.4,
+      opacity = 0.2,
       name = "Full space",
       visible = "legendonly"
     )%>%
@@ -150,7 +156,7 @@ resultplot<-plot_ly() %>%
       y = ~r13,
       z = ~r23,
       marker = list(size = 2, color = "darkgreen"),
-      opacity = 0.8,
+      opacity = 0.4,
       name = "95% CR(S)"
     )%>%
     add_markers(
@@ -159,7 +165,7 @@ resultplot<-plot_ly() %>%
       y = ~r13,
       z = ~r23,
       marker = list(size = 2, color = "blue"),
-      opacity = 0.8,
+      opacity = 0.4,
       name = "MCMC samples"
     ) %>%
   add_markers(
@@ -198,6 +204,7 @@ resultplot<-plot_ly() %>%
 }
 
 resultplot
+
 
 library(htmlwidgets)
 
