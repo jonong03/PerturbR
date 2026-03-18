@@ -849,7 +849,7 @@ Only comparing resampling processes: Bootstrap versus FastR
 
 2.  Kummerfeld, E., Williams, L., & Ma, S. (2024). Power analysis for causal discovery. *International Journal of Data Science and Analytics*, *17*(3), 289–304. <https://doi.org/10.1007/s41060-023-00399-4>
 
-3.  **Steiger, J. H. (1990).** Structural model evaluation and modification: An interval estimation approach. *Multivariate Behavioral Research, 25*(2), 173-180.
+3.  Steiger, J. H. (1980). Tests for comparing elements of a correlation matrix. *Psychological Bulletin, 87*(2), 245–251. [https://doi.org/10.1037/0033-2909.87.2.245](https://psycnet.apa.org/doi/10.1037/0033-2909.87.2.245)
 
 # Notations (depreciated)
 
