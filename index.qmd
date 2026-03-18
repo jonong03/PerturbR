@@ -29,7 +29,7 @@ Under standard regularity conditions: normality and finite asypmtotic covariance
   \sqrt{n}(\hat{\rho}-\rho) \xrightarrow{d} N(0,\Psi(\rho))
 $$where:
 
--   diagonal of $\Psi$: $\psi_{jk} = 1-\rho_{jk}^2$
+-   diagonal of $\Psi$: $\psi_{jk}^2 = (1-\rho_{jk}^2)^2$
 
 -   off-diagonal of $\Psi$:
 
@@ -39,7 +39,7 @@ $$where:
     &= N\,\sigma_{jk,hm} \\
     &= \frac{1}{2} \Big[
     (\rho_{jh}-\rho_{jk}\rho_{kh})(\rho_{km}-\rho_{kh}\rho_{hm}) \\
-    &\quad + (\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{kj}\rho_{jh}) \\
+    &\quad + (\rho_{jm}-\rho_{jh}\rho_{hm})(\rho_{kh}-\rho_{kj}\rho_{jh}) \\
     &\quad + (\rho_{jh}-\rho_{jm}\rho_{mh})(\rho_{km}-\rho_{kj}\rho_{jm}) \\
     &\quad + (\rho_{jm}-\rho_{jk}\rho_{km})(\rho_{kh}-\rho_{km}\rho_{mh})
     \Big].
