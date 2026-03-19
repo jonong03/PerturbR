@@ -26,7 +26,7 @@ source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projec
 # Prep: Generate trueR
 p=3L; ad=2L;  NCHAIN= 20000L; N= 50000L
 df<- m<- p*(p-1)/2  # degree of freedom
-Target <- er_dag_py(p = p, ad = ad, n = N, K = 1L, seed = 1523L)
+Target <- er_dag_py(p = p, ad = ad, n = N, K = 1L, seed = 144L)
 G0 <- Target$G
 R0 <- Target$R ; kappa(R0)
 
@@ -102,13 +102,36 @@ mean(pval_wald2 > 0.05)
 rcr_wald<- mean(pval_wald2 > 0.05)
 rcr_wald
 
+fullspace<- rlkjcorr(n=NCHAIN*100, K=3)
+dim(fullspace)
+pval_fullspace<- sapply(1:dim(fullspace)[1], function(i){
+  R<- fullspace[i,,]
+  out<- wald.test(Rsample= S, Rpop= R, alpha = 0.05, asy.n= asy.n)
+  out[4]
+})
+pval_fullspace<- sapply(pval_fullspace, function(i) i)
+fullspace_in <- fullspace[which(pval_fullspace> 0.05),,]
+dim(fullspace_in)
+
+hist(pval_fullspace)
+sum(pval_fullspace> 0.05, na.rm=T)
+8/40000
+
+
+
 # Plot --------------------------------------------------------------------
 {
-  fullspace<- rlkjcorr(n=NCHAIN/2, K=3)
+  sampleNCHAIN= sample(NCHAIN*100, NCHAIN)
   fullspace_df<- data.frame(
-    r12 = fullspace[,1,2],
-    r13 = fullspace[,1,3],
-    r23 = fullspace[,2,3]
+    r12 = fullspace[sampleNCHAIN,1,2],
+    r13 = fullspace[sampleNCHAIN,1,3],
+    r23 = fullspace[sampleNCHAIN,2,3]
+  )
+  fullspace_in_df<- data.frame(
+    r12 = fullspace_in[,1,2],
+    r13 = fullspace_in[,1,3],
+    r23 = fullspace_in[,2,3]
+    
   )
   chain_df <- data.frame(
     r12 = RCHAIN[1,2,-burnin],
@@ -142,38 +165,20 @@ resultplot<-plot_ly() %>%
       opacity = 0.2,
       name = "Full space",
       visible = "legendonly"
-    )%>%
-    add_markers(
-      x = c(0,0),
-      y = c(0,0),
-      z = c(0,0),
-      marker = list(size = 8, color ="black"),
-      name = "Identity Matrix"
-    ) %>%
-    add_markers(
-      data = waldCR_df,
-      x = ~r12,
-      y = ~r13,
-      z = ~r23,
-      marker = list(size = 2, color = "darkgreen"),
-      opacity = 0.4,
-      name = "95% CR(S)"
-    )%>%
-    add_markers(
-      data = chain_df,
-      x = ~r12,
-      y = ~r13,
-      z = ~r23,
-      marker = list(size = 2, color = "blue"),
-      opacity = 0.4,
-      name = "MCMC samples"
-    ) %>%
+      ) %>%
+  add_markers(
+    x = c(0,0),
+    y = c(0,0),
+    z = c(0,0),
+    marker = list(size = 8, color ="black"),
+    name = "Identity Matrix"
+  ) %>%
   add_markers(
     data = R_point,
     x = ~r12,
     y = ~r13,
     z = ~r23,
-    marker = list(size = 8, color = "gold"),
+    marker = list(size = 8, color = "orange"),
     name = "R (unknown)"
   ) %>%
   add_markers(
@@ -184,6 +189,32 @@ resultplot<-plot_ly() %>%
     marker = list(size = 8, color = "red"),
     name = "S (observed)"
   ) %>%
+  add_markers(
+    data = waldCR_df,
+    x = ~r12,
+    y = ~r13,
+    z = ~r23,
+    marker = list(size = 2, color = "darkgreen"),
+    opacity = 0.4,
+    name = "Wald space of S - Rev.Containment"
+  )%>%
+    add_markers(
+      data = chain_df,
+      x = ~r12,
+      y = ~r13,
+      z = ~r23,
+      marker = list(size = 2, color = "blue"),
+      opacity = 0.4,
+      name = "MCMC samples"
+    ) %>%
+  add_markers(
+    data = fullspace_in_df,
+    x = ~r12,
+    y = ~r13,
+    z = ~r23,
+    marker = list(size = 3, color = "gold"),
+    name = "Full space of 3x3 - Rev.Containment"
+  )%>%
     layout(
       scene = list(
         xaxis = list(title = "r12"),

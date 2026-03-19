@@ -48,7 +48,7 @@ $$where:
 
 When $\Psi(\rho)$ is unknown, we use plug-in estimate \$ \\Psi(\\hat\\rho)\$. This requires us to prove $\hat\Psi \xrightarrow{p} \Psi$.
 
-\[See Steiger (1990)\]
+\[See Steiger (1980)\]
 
 ## Confidence region of $\rho$
 
@@ -81,7 +81,7 @@ Note when $d=1$, $\Psi(\rho)$ is a scalar, basically variance of $\rho$. When $\
 Some challenges arise when using $Z$ to construct a confidence region for $\rho$ in higher dimension:
 
 1.  Because $Z_i \sim N(0,1)$ for each $i$ dimension, we are basically constructing confidence interval for each $Z_i$ marginally. This results in a confidence "box" (or hyper-rectangle) when combined together.
-2.  This approach does not respect the covariance of $\rho$ and treat each $\rho_{ij}$ as independent. This is incorrect. See Steiger (1990).
+2.  This approach does not respect the covariance of $\rho$ and treat each $\rho_{ij}$ as independent. This is incorrect. See Steiger (1980).
 
 This motivates us to consider a joint-inference approach, so that the confidence region that we build respects the covariance of $\rho$.
 
