@@ -716,6 +716,8 @@ Otherwise, when sample size is insufficient, became poorly under-calibrated.
 
 ## Simulation 5: MCMC Sampling
 
+Target: $I(S \in CR_{1-\alpha}(R))$
+
 Setup: Start with a graph $G$ that is parametrized by $R_0$. We observed data $X$ with sample size $n$ and derive sample correlation $S$.
 
 Procedure:
@@ -727,13 +729,13 @@ Procedure:
     Let $R$ denote current state: $Q^{[t]}$
 
     1.  Sample $R' \sim W(R;\Psi(R, n))$
-    2.  Compute acceptance ratio: $A(R \rightarrow R') = \dfrac{f(R | R',n)}{f(R'|R,n)}\cdot\ I(S \in CR_{1-\alpha}(R') )$
+    2.  Compute acceptance ratio: $A(R \rightarrow R') = min \{ \dfrac{f(R | R',n)}{f(R'|R,n)}\cdot I(S \in CR_{1-\alpha}(R') ),\ 1 \}$
         -   $f(R| R',n)$ is the multivariate normal density of $R$ given $\mu = R'$ and $\Sigma = \Psi(R')/n$
 
         -   $I(S \in CR_{1-\alpha}(R') )$ is an indicator function for the reverse containment status. $I(\cdot)=1$ if $S$ lies within the confidence region of $R'$ at level $1-\alpha$. The center is $R'$.
 
             More specifically, it is checking the Mahalanobis distance between $S$ and $R'$ with $R'$ as the center: $(s−r′)^T \Psi(R′)^{-1}(s−r′)≤\chi^2_{d,1−α}​$, where $d=\frac{p(p-1)}{2}$.
-    3.  If $A(R→R′) >u$ where $u \sim Unif(0,1)$, accept $R'$: update $Q^{[t]} = R'$. Else, $Q^{[t]} = Q^{[t-1]} = R$
+    3.  Simulate $u \sim Unif(0,1)$, If $A(R→R′) \geq u$, then accept $R'$ as the next state (update $Q^{[t]} = R'$). Otherwise, the next state is still $R$ (update $Q^{[t]} = Q^{[t-1]} = R$).
 
 Other notes: Burnin period was set as 20% of samples in the chain.
 
@@ -802,9 +804,9 @@ Only comparing resampling processes: Bootstrap versus FastR
 ### Marginal inference approach
 
 1.  We discussed instead of the joint-inference approach, we could sample $\hat\rho_{ij}$ independently from its asymptotic distribution $N(\rho_{ij}, 1-\rho_{ij}^2)$.
-    1.  From simulation (similar to simulation 2 above), coverage of each $\hat\rho_{ij}$ is close to the nominal level when considered individually. However, when we consider the results across all $\rho_{ij}$ s jointly, the joint coverage from this marginal approach became poor. This is related to multiple testing problem.
+    1.  From simulation (similar to simulation 2 above), coverage of each $\hat\rho_{ij}$ is close to the nominal level when considered individually. However, when we consider the results across all $\rho_{ij}$ s jointly, the joint coverage from this marginal approach became poor. This can be related to inflated type 1 error/ multiple testing problem.
 
-    2.  To construct a correlation matrix sample, we could sample each $\hat\rho_{ij}$ independently from its confidence interval, and check if that constructed matrix is PSD. If it is not PSD, we reject it.
+    2.  To construct a correlation matrix sample, we sample each $\hat\rho_{ij}$ independently from its confidence interval, and check if that constructed matrix is PSD. If it is not PSD, we reject it.
 
         This approach works in lower dimension, however became highly inefficient (large rejection rate) as dimension grows.
 

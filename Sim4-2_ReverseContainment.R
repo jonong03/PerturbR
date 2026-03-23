@@ -270,7 +270,7 @@ ill.defined.sample.rate = sapply(1:3, function(i) res[[i]]$ill %>% mean) # how m
 set.seed(123)
 
 ## settings
-p <- 40L
+p <- 30L
 B <- 1000L
 S <- 100L                  # number of different R0's
 eta <- 1
@@ -477,6 +477,10 @@ ill_mat
 rowMeans(rate_mat, na.rm=T)  # reverse containment rate
 rowMeans(ill_mat, na.rm=T)
 
+kappa.r<- sapply(1:S, function(s) {
+  kappa(R0_all[s,,])
+})
+plot(kappa.r, kappa.i)
 {
   kappa.i<- sapply(1:S, function(s) {
     P<- metaSEM::asyCov(R0_all[s,,], n = 1)
@@ -490,7 +494,7 @@ rowMeans(ill_mat, na.rm=T)
   abline(h= 1-alpha, col="red", lty=2)
   points(log(kappa.i), rate_mat[2,], col = cols[2], pch = 16, cex = 1)
   points(log(kappa.i), rate_mat[3,], col = cols[3], pch = 16, cex = 1)
-  legend("topleft", legend = paste("n =", n_vec, "; Average Rate = ",round(rowMeans(rate_mat, na.rm=T),2)), col = cols, pch = 16, bty = "n")
+  legend("topleft", legend = paste("n =", n_vec, "; Reverse Containment Rate (average) = ",round(rowMeans(rate_mat, na.rm=T),2)), col = cols, pch = 16, bty = "n")
   mtext(paste0("R0 is sampled uniformly from the space of valid ",p," x ",p," correlation matrices. \n1000 Rhats are sampled from the Wald cloud centered at R0.\nReverse containment is assessed using the Mahalanobis distance between each Rhat and R0, using asyCov(Rhat).\nAverage reverse containment rate (excluding ill-conditioned asyCov(Rhat)) is reported for each R0"), 
         side=1, line=7, adj=0)
 }

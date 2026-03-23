@@ -30,7 +30,7 @@ get_metric <- function(G0, Ghat) {
 
 # 1: Generate trueR
 set.seed(123)
-p=5L; ad=2L; asy.n= 50L; B= 500
+p=10L; ad=4L; asy.n= 1000L; B= 500
 df<- m<- p*(p-1)/2  # degree of freedom
 Target <- er_dag_py(p = p, ad = ad, n = asy.n, K = 500L)
 G0 <- Target$G
@@ -38,7 +38,7 @@ R0 <- Target$R
 
 # 3: Learn Boss
 
-R1 = cor(Target$X[89,,])   #id=2, 89
+R1 = cor(Target$X[326,,])   #id=2, 89
 pc = run_pc_mat(R1, asy.n, alpha = 0.05)
 boss = boss_py(R1, asy.n)
 
@@ -73,7 +73,7 @@ Rhat<- rwaldcloud(R0= R0, n= asy.n, B=B)
 #bossl <- lapply(1:B, function(i) boss_py(Rhat[,,i], asy.n))
 
 pcl<- lapply(1:B, function(i) run_pc_mat(cor(Target$X[i,,]), n_obs= asy.n, alpha = 0.05))
-bossl <- lapply(1:B, function(i) boss_py(cor(Target$X[i,,]), asy.n))
+bossl <- lapply(1:B, function(i) boss_py(cor(Target$X[i,,]), asy.n, discount = 2))
 
 outpc<- lapply(pcl, function(Ghat) get_metric(G0, Ghat))
 outpc.adj<- sapply(outpc, function(Q) Q$adj) %>% t()
@@ -84,8 +84,12 @@ outboss.adj<- sapply(outboss, function(Q) Q$adj) %>% t()
 outboss.ort<- sapply(outboss, function(Q) Q$orient) %>% t()
 
 par(mfrow=c(1,2))
-hist(outpc.adj)
-hist(outboss.adj)
+hist(outpc.adj[,2], breaks = 10, freq= F, ylim=c(0,20))
+hist(outboss.adj[,2], breaks= 10, freq= F, ylim=c(0,20))
+hist(outpc.adj[,1], breaks = 10, freq= F)
+hist(outboss.adj[,1], breaks= 10, freq= F)
+
+
 summary(outpc.adj)
 summary(outboss.adj)
 which.max(outpc.adj[,1]- outboss.adj[,1])
