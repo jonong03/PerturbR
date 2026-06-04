@@ -11,4 +11,5 @@
 
 module load R
 
-Rscript UseCase/msi/run_one_param.R ${SLURM_ARRAY_TASK_ID}
+Rscript UseCase/msi/installpack.R
+#Rscript UseCase/msi/run_one_param.R ${SLURM_ARRAY_TASK_ID}
