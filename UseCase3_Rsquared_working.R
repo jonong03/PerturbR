@@ -323,22 +323,48 @@ for (j in seq_len(nrow(param_grid))) {
     " ss_id=", param_grid$ss_id[j]
   )
   
+  M_j <- gen_AR1(rho = rho_j, p = nvar)
+  
   runs_j <- future_lapply(seq_len(B), function(b) {
     library(mvtnorm)
     source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR/docs/WorkingCode/Functions.R",local = TRUE)
     
-    M <- gen_AR1(rho = rho_j, p = nvar)
-    simdriver(Rxx = M, beta = beta_j, k = ktrue, ss = ss_j, nchain = nchain)
+    simdriver(Rxx = M_j, beta = beta_j, k = ktrue, ss = ss_j, nchain = nchain)
   }, future.seed = TRUE)
   
-  res[[j]] <- list(
-    rho     = rho_j,
-    ss      = ss_j,
-    beta    = beta_j,
-    runs    = runs_j
+  for (i in seq_len(B)) {
+    out.point[1, i, j] <- runs_j[[i]]$khat.point
+    out.chain[, i, j] <- runs_j[[i]]$khat.chain
+    out.boot[, i, j]  <- runs_j[[i]]$khat.boot
+  }
+  
+  saveRDS(
+    list(
+      j = j,
+      param = param_grid[j, ],
+      out.point = out.point[, , j, drop = FALSE],
+      out.chain = out.chain[, , j, drop = FALSE],
+      out.boot  = out.boot[, , j, drop = FALSE]
+    ),
+    file = fout
   )
+  
+  rm(runs_j)
+  gc()
 }
 plan(sequential)
+
+files <- list.files("sim_outputs", pattern = "\\.rds$", full.names = TRUE)
+
+for (f in files) {
+  x <- readRDS(f)
+  j <- x$j
+  
+  out.point[, , j] <- x$out.point[, , 1]
+  out.chain[, , j] <- x$out.chain[, , 1]
+  out.boot[, , j]  <- x$out.boot[, , 1]
+}
+
 
 res[[1]]$runs[[1]]$khat.chain %>% summary
 res[[1]]$runs[[1]]$khat.boot %>% quantile(.,c(0.025, 0.975))
