@@ -1,8 +1,11 @@
 # script to run in msi
-install.packages("future.apply")
+user_lib <- "~/R/x86_64-pc-linux-gnu-library/4.4"
+.libPaths(c(user_lib, .libPaths()))
 
 library(future.apply)
 library(data.table)
+library(mvtnorm)
+library(parallelly)
 
 source("docs/WorkingCode/Functions.R")   # source required functions
 source("UseCase/msi/param_setup.R")      # source parameters for simulation
