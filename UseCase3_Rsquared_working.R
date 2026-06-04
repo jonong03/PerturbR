@@ -326,18 +326,13 @@ for (j in seq_len(nrow(param_grid))) {
   beta_j <- beta_[[param_grid$beta_id[j]]]
   ss_j   <- ss_[param_grid$ss_id[j]]
   
-  message(
-    "Running parameter set ", j, "/", nrow(param_grid),
-    " | rho_id=", param_grid$rho_id[j],
-    " beta_id=", param_grid$beta_id[j],
-    " ss_id=", param_grid$ss_id[j]
-  )
+  message("Running parameter set ", j, "/", nrow(param_grid))
   
   M_j <- gen_AR1(rho = rho_j, p = nvar)
   
   runs_j <- future_lapply(seq_len(B), function(b) {
     library(mvtnorm)
-    source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR/docs/WorkingCode/Functions.R",local = TRUE)
+    source("docs/WorkingCode/Functions.R",local = TRUE)
     
     simdriver(Rxx = M_j, beta = beta_j, k = ktrue, ss = ss_j, nchain = nchain)
   }, future.seed = TRUE)
@@ -347,6 +342,8 @@ for (j in seq_len(nrow(param_grid))) {
     out.chain[, i, j] <- runs_j[[i]]$khat.chain
     out.boot[, i, j]  <- runs_j[[i]]$khat.boot
   }
+  
+  fout <- sprintf("sim_outputs/res_param_%03d.rds", j)
   
   saveRDS(
     list(
@@ -365,7 +362,6 @@ for (j in seq_len(nrow(param_grid))) {
 plan(sequential)
 
 files <- list.files("sim_outputs", pattern = "\\.rds$", full.names = TRUE)
-
 for (f in files) {
   x <- readRDS(f)
   j <- x$j
