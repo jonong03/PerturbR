@@ -223,7 +223,7 @@ range(Rsq.hat.chain) %>% diff
 # Notation: correlation matrix as M, Rsquared as k
 
 
-p= 8
+p= 20
 rho = 0.6
 beta = sample(c(-0.4,0.4), p, replace= TRUE, prob = c(0.5,0.5))
 ktrue = 0.8
@@ -298,16 +298,14 @@ out.boot %>% quantile(.,c(0.025, 0.975))
 ##### S4: one (or a few) beta = 0.8, rest = 0.2
 ##### S5: mixed of 0.4 and -0.4
 
-nvar = 5
+nvar = 10
 ktrue = 0.9
 nchain = 20000
-B = 5
+B = 300
 alpha = 0.05
 
 rho_ = c(0.2, 0.5, 0.8)
-rho_ = c(0.8)
 ss_ = c(200, 500, 1000)
-ss_ = c(1000)
 
 beta.s1 = rep(0.6, nvar)
 beta.s2 = rep(0.2, nvar)
@@ -316,16 +314,13 @@ beta.s4 = beta.s2; beta.s4[sample(nvar,1)] <- 0.8
 beta.s5 = sample(c(-0.4,0.4), nvar, replace= TRUE, prob = c(0.5,0.5))
 beta_ = list(beta.s1, beta.s2, beta.s3, beta.s4, beta.s5)
 
-param_grid <- CJ( rho_id  = seq_along(rho_), beta_id = seq_along(beta_), ss_id   = seq_along(ss_) )
-
-res <- vector("list", nrow(param_grid))
-B = 300 # Repeat B times 
+param_grid <- CJ(rho_id  = seq_along(rho_), beta_id = seq_along(beta_), ss_id   = seq_along(ss_) )
 out.point <- array(NA_real_, dim = c(1, B, nrow(param_grid)))
 out.boot  <- array(NA_real_, dim = c(nchain, B, nrow(param_grid)))
 out.chain <- array(NA_real_, dim = c(nchain, B, nrow(param_grid)))
 
 
-plan(multisession, workers = parallelly::availableCores() - 1)
+plan(multisession, workers = min(parallelly::availableCores() - 1, nrow(param_grid)))
 for (j in seq_len(nrow(param_grid))) {
   rho_j  <- rho_[param_grid$rho_id[j]]
   beta_j <- beta_[[param_grid$beta_id[j]]]
@@ -370,26 +365,11 @@ files <- list.files("sim_outputs", pattern = "\\.rds$", full.names = TRUE)
 for (f in files) {
   x <- readRDS(f)
   j <- x$j
-  
   out.point[, , j] <- x$out.point[, , 1]
   out.chain[, , j] <- x$out.chain[, , 1]
   out.boot[, , j]  <- x$out.boot[, , 1]
 }
 
-
-res[[1]]$runs[[1]]$khat.chain %>% summary
-res[[1]]$runs[[1]]$khat.boot %>% quantile(.,c(0.025, 0.975))
-
-
-out.point <- array(NA, dim=c(1, B, nrow(param_grid)))
-out.boot <- out.chain <- array(NA, dim=c(nchain, B, nrow(param_grid)))
-for (j in 1:nrow(param_grid)){
-  for (i in 1:B){
-    out.point[1,i,j] <- res[[j]]$runs[[i]]$khat.point
-    out.chain[,i,j] <- res[[j]]$runs[[i]]$khat.chain
-    out.boot[,i,j] <- res[[j]]$runs[[i]]$khat.boot
-  }
-}
 
 out.point[,,1]
 out.chain[,,1]
