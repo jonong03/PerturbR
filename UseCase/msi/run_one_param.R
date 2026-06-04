@@ -1,4 +1,5 @@
 # script to run in msi
+install.packages("future.apply")
 
 library(future.apply)
 library(data.table)
