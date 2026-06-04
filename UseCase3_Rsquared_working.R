@@ -316,9 +316,14 @@ beta.s4 = beta.s2; beta.s4[sample(nvar,1)] <- 0.8
 beta.s5 = sample(c(-0.4,0.4), nvar, replace= TRUE, prob = c(0.5,0.5))
 beta_ = list(beta.s1, beta.s2, beta.s3, beta.s4, beta.s5)
 
-
 param_grid <- CJ( rho_id  = seq_along(rho_), beta_id = seq_along(beta_), ss_id   = seq_along(ss_) )
+
 res <- vector("list", nrow(param_grid))
+B = 300 # Repeat B times 
+out.point <- array(NA_real_, dim = c(1, B, nrow(param_grid)))
+out.boot  <- array(NA_real_, dim = c(nchain, B, nrow(param_grid)))
+out.chain <- array(NA_real_, dim = c(nchain, B, nrow(param_grid)))
+
 
 plan(multisession, workers = parallelly::availableCores() - 1)
 for (j in seq_len(nrow(param_grid))) {
