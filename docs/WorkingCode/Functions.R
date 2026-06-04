@@ -67,10 +67,10 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
   return(out)
 }
 # Generate Sample (Full Spread)
-rwaldcloud<- function(R0, n= 1e5, B=1, max.iter= B*10, output=c("full","lower")){
+rwaldcloud<- function(R0, n= 1e5, B=1, max.iter= B*10, output=c("full","lower"), scale=1){
   output <- match.arg(output)
   r0 <- R0[lower.tri(R0)]
-  Psi0<- metaSEM::asyCov(R0, n = 1)
+  Psi0<- scale*metaSEM::asyCov(R0, n = 1)
   d<- ncol(R0)
   ps<- length(r0)
   
@@ -126,6 +126,67 @@ rwaldcloud<- function(R0, n= 1e5, B=1, max.iter= B*10, output=c("full","lower"))
     return(t(rhat.keep))
   }
   
+}
+rwaldcloud<- function(R0, Psi, n= 1e5, B=1, tol=1e-5, verbose=FALSE){
+  # Psi must be defined at sample size = 1
+  # If Psi is not defined, it will be estimated by metaSEM::asyCov(R0, n= n)
+  
+  d<- ncol(R0)
+  ps<- d*(d-1)/2
+  out <- array(NA_real_, dim = c(d, d, B))
+  
+  if(missing(Psi)){
+    Psi <- metaSEM::asyCov(R0, n = n)
+  }
+  
+  # Eigen Decomposition and check if R0 (and Psi0) can be decomposed
+  eig<- eigen(Psi, symmetric = TRUE)
+  if (any(eig$values < -tol)) {
+    stop("Psi0 is not positive semidefinite.")
+  }
+  
+  A <- eig$vectors %*% diag(sqrt(pmax(eig$values, 0)), nrow = ps)
+  
+  r0 <- R0[lower.tri(R0)]
+  b <- 0
+  iter <- 0
+  non.psd.count <- 0
+  max.iter <- 100
+  
+  while (b < B && iter < max.iter) {
+    iter <- iter + 1
+    
+    z <- matrix(rnorm(ps), ncol = 1)
+    rhatb <- as.vector(r0 + A %*% z)
+    
+    Rhatb <- diag(d)
+    Rhatb[lower.tri(Rhatb)] <- rhatb
+    Rhatb[upper.tri(Rhatb)] <- t(Rhatb)[upper.tri(Rhatb)]
+    
+    evals <- eigen(Rhatb, symmetric = TRUE, only.values = TRUE)$values
+    
+    if (all(evals > tol)) {
+      b <- b + 1
+      out[, , b] <- Rhatb
+    } else {
+      non.psd.count <- non.psd.count + 1
+    }
+  }
+  
+  if (verbose) {
+    cat("Accepted:", b, "; Rejected:", non.psd.count,
+        "; Total iterations:", iter, "\n")
+  }
+  
+  if (b < B) {
+    stop(sprintf("Could not generate %d positive-definite samples within max.iter = %d.", B, max.iter))
+  }
+  
+  #attr(out, "accepted") <- b
+  #attr(out, "rejected") <- non.psd.count
+  #attr(out, "iterations") <- iter
+  
+  return(out)
 }
 
 # Generate Sample Randomly (1-alpha spread)

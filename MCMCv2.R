@@ -24,7 +24,7 @@ source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projec
 
 
 # Prep: Generate trueR
-p=3L; ad=2L;  NCHAIN= 20000L; N= 50000L
+p=3L; ad=2L;  NCHAIN= 10000L; N= 50000L
 df<- m<- p*(p-1)/2  # degree of freedom
 Target <- er_dag_py(p = p, ad = ad, n = N, K = 1L, seed = 144L)
 G0 <- Target$G
@@ -35,11 +35,14 @@ sampleid<- sample(N, asy.n)
 X <- Target$X[1,sampleid,]
 S <- cor(X); kappa(S)
 
+
 # S = rlkjcorr(1, K=3, eta = 5)
 # Step 0: Initiation of Chain
 RCHAIN<- array(NA, dim= c(p,p,NCHAIN))
 RCHAIN[,,1] <- S 
 
+type = 1
+scale_factor = 0.4
 accept <- 0
 
 for (i in 2: NCHAIN){
@@ -47,7 +50,8 @@ for (i in 2: NCHAIN){
   rcurrent<- Rcurrent[lower.tri(Rcurrent)]
   
   # Step 1: Draw R*
-  Rs<- rwaldcloud(Rcurrent, n = asy.n, B = 1) %>% drop()
+  
+  Rs<- rwaldcloud(Rcurrent, n = asy.n, B = 1, scale= scale_factor) %>% drop()
   rs<- Rs[lower.tri(Rs)]
   
   # Step 2: Acceptance Ratio
@@ -63,6 +67,15 @@ for (i in 2: NCHAIN){
   # partC$pval < 0.05  # if p-val< 0.05, reject, outside of 95% CR
   logMH = partA - partB 
   
+  ###NEW
+  if(type==2){
+    D1 <- t(rcurrent - rs) %*% solve(Psi_Rs) %*% (rcurrent-rs)
+    D2 <- t(rcurrent - rs) %*% solve(Psi_Rcurrent) %*% (rcurrent-rs)
+    detD1 <- determinant(Psi_Rs, logarithm = T)$modulus
+    detD2 <- determinant(Psi_Rcurrent, logarithm = T)$modulus
+    logMH = (-0.5* (D1-D2) - 0.5*(detD1 - detD2))[1]
+  }
+  
   # Step 3: accept or reject
   if(IR==TRUE && logMH > log(runif(1))){ # accept Rs
     RCHAIN[,,i]<- Rs
@@ -70,12 +83,51 @@ for (i in 2: NCHAIN){
   } else {
     RCHAIN[,,i]<- Rcurrent
   }
-  
+  cat("Accept:", accept/i," ")
 }
 
 acceptrate= accept/NCHAIN
 acceptrate
+
+
 burnin<- 1:(NCHAIN*0.20)
+
+dim(RCHAIN)
+Qi <- sapply((NCHAIN*0.20+1):NCHAIN, function(i){
+  rchain<- RCHAIN[,,i]
+  Pchain <- metaSEM::asyCov(rchain, n= asy.n)
+  rchain<- rchain[lower.tri(rchain)]
+  
+  rs <- S[lower.tri(S)]
+  Ps <- metaSEM::asyCov(S, n= asy.n)
+  
+  D<- t(rchain - rs)%*%solve(Pchain)%*% (rchain-rs)
+  d<- length(rs)
+  c<- qchisq(p = 0.95, df = d)
+  u<- (D/c)^(d/2)
+  
+  return(u)
+})
+summary(Qi)
+hist(Qi)
+
+qchisq(p=0.05, d=3, lower.tail = F)
+
+
+####
+eigenvec1<- eigen(Psi_Rs)$vectors
+eigenval1<- diag(ncol(Psi_Rs))
+diag(eigenval1) <- eigen(Psi_Rs)$values
+eigenvec1 %*% eigenval1 %*% t(eigenvec1)
+solve(Psi_Rs)
+
+L1<- eigenvec1 %*% sqrt(eigenval1)
+# L1 %*% t(L1)
+
+y1<- solve(L1) %*% (rcurrent- rs)
+qchisq(p = 0.05, df=3)
+####
+
 
 # Check Reverse Containment: Each R should be compatible with S
 out<- sapply(c(1:NCHAIN)[-burnin], function(i) wald.test(Rsample=S, Rpop= RCHAIN[,,i], alpha= 0.05, asy.n= asy.n)) %>% t()
@@ -255,10 +307,16 @@ dev.off()
 # ACF
 png(paste0(savedir,"acf_plots_n",asy.n,".png"), width = 950, height = 400)
 par(mfrow=c(1,3))
+idx <- seq(1,NCHAIN, by=50)
 acf(RCHAIN[1,2,-burnin], lag.max = 50)
 acf(RCHAIN[1,3,-burnin], lag.max = 50)
 acf(RCHAIN[2,3,-burnin], lag.max = 50)
 dev.off()
+
+acf(RCHAIN[1,2,idx], lag.max = 50)
+acf(RCHAIN[1,3,idx], lag.max = 50)
+acf(RCHAIN[2,3,idx], lag.max = 50)
+
 
 # marginal distribution
 

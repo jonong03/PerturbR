@@ -1,0 +1,164 @@
+---
+title: "Use Case - Variable Selection in Multiple Linear Regression"
+author: "Jon Ong"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This use case is inspired by Meinshausen, N., & Buehlmann, P. (2009). *Stability Selection* (arXiv:0809.2932). arXiv. <https://doi.org/10.48550/arXiv.0809.2932>
+
+## Background & Literature (Incomplete)
+
+Variable selection in multiple linear regression aims to find a parsimonious model while retaining important covariates. Traditional methods often select a single "best" set of covariates to be included in a model, ignoring the inherent uncertainty in the selection process and potentially leading to invalid inferences (i.e., falsely excluding important variables or inclusion of noise variable would lead to biased estimation and invalid standard errors).
+
+Typical classes of variable selection methods and their uncertainty quantification approaches:
+
+-   **Stepwise/ criteria-based methods**
+
+    This includes forward, backward, stepwise selection methods. Variables are sequentially added to or dropped from a model. Criteria scores like AIC, BIC, Mallow C-p are widely used to evaluate which model is better.
+
+-   **Penalized likelihood and regularization methods**
+
+    This class of method perform simultaneous estimation and selection, producing sparse models. Methods include LASSO, Elastic Net and SCAD (Smoothly Clipped Absolute Deviation) - a nonconcave penalty for likelihood-based variable selection method.
+
+## **Research Goal**
+
+This use case aims to quantify variable selection stability in multiple linear regression under uncertainty in the estimated joint correlation matrix. Specifically, we ask whether true signal variables and null/noise variables can be separated by their selection stability, with true signals expected to be selected consistently across plausible perturbations of the empirical correlation matrix.
+
+## Data Generating Mechanism
+
+Consider the linear additive model setup:
+
+$$
+Y = X^T\beta + \varepsilon
+$$
+
+where $X \sim N(0, \Sigma_{XX})$, $\varepsilon \sim N(0, \sigma^2)$ and $X \perp \varepsilon$.
+
+Here, $X$ is a $p \times 1$ vector of predictors, $\Sigma_{XX}$​ is the predictor correlation matrix, and $\beta$ is a $p \times 1$ regression coefficient vector. True signal variables are defined by nonzero regression coefficients, while null/noise variables have coefficients equal to zero.
+
+This design allows us to study whether selection procedures consistently recover the true signals, or select correlated noise variables that act as proxies for the true signals.
+
+### Population Joint Correlation/ Covariance Structure
+
+The predictor correlation structure $R_{XX}$ is specified first. Given $R_{XX}, \beta$, abd $\sigma^2$, the population joint covariance matrix of (Y,X) is $$
+\Sigma =
+\begin{bmatrix}
+\Sigma_{YY} & \Sigma_{YX} \\
+\Sigma_{XY} & \Sigma_{XX}
+\end{bmatrix}
+$$
+
+where $$
+\Sigma_{YY} = Var(Y) = Var(X^T\beta + \varepsilon) = \beta^T\Sigma_{XX} \beta \ + \ \sigma^2
+\\
+\Sigma_{XY} = Cov(X,Y) = Cov(X, X^T\beta + \varepsilon) =  \Sigma_{XX}\beta
+$$
+
+If predictors are standardized, then $\Sigma_{XX}=R_{XX}$. The joint covariance matrix can then be converted to a joint correlation matrix. The MCMC perturbation procedure operates in this correlation space.
+
+### Procedure to Generate a Finite-Sample Correlation Matrix
+
+The population correlation matrix is treated as the data generating truth, but the MCMC procedure begins from a finite-sample estimate. The procedure:
+
+1.  Specify $R_{XX}$, the correlation structure among predictors.
+2.  Specify $\beta$, where signal variables have nonzero coefficients and noise variables have zero coefficients.
+3.  Generate $n$ observations from $X \sim N(0, R_{XX})$.
+4.  Derive outcome $Y = X^T \beta + \varepsilon$
+5.  Estimate the empirical joint correlation matrix: $\hat{R} = Cor(Y, X)$
+
+The matrix $\hat{R}$ will be served as the starting point for the MCMC perturbation procedure.
+
+#### Choice of Predictor Correlation Structure $R_{XX}$
+
+An independent correlation structure is not ideal because it makes signal andnoise variables easier to separate, therefore a less interesting problem to solve. Other choices of correlation structure include exchangeable, AR(1), and unstructured.
+
+My proposed design is a blockwise correlation matrix, where each block represent its own correlation strength (or pattern) and signal composition. This allows us to test selection stability under different scenarios.
+
+| Block | Signal Composition | Correlation Structure (Exchangeable) | Interpretation | Purpose |
+|-------------|---------------------|------------------|----------------------|-----------------------|
+| 1 | all $\beta_j=0$ | $\rho=0.2$ | Pure noise, weakly correlated | test false positive |
+| 2 | all $\beta_j=0$ | $\rho = 0.8$ | Pure noise, strongly correlated | test false positive from correlated noise |
+| 3 | all $\beta_j \neq 0$ | $\rho = 0.5$ | All signal variables | test whether true predictors will be dropped |
+| 4 | one $\beta_j\neq0$, the rest are 0 | $\rho = 0.7$ | One signal, many noise | test signal recovery |
+| 5 | some $\beta_j\neq0$, the rest are 0 | $\rho= 0.5$ | Some signal, some noise | test group signal recovery |
+| 6 | all $\beta_j \neq 0$, half positive half negative | $\rho= 0.7$ | a mixed of positive and negative signals | test cancellation effects |
+|  |  |  |  |  |
+
+This design allows both variable-level and block-level stability to be assessed.
+
+## Methods
+
+The population correlation matrixwill be treated as unknown, all inference is conducted to the uncertainty around $\hat{R}$. A 95% MCMC perturbation cloud of plausible correlation matrices, $\{\hat{R}^{(b)}\}_{b=1}^{B}$, will be generated around $\hat{R}$, with $B = 20{,}000$. For each perturbed $\hat{R}^{(b)}$, we extract $\hat{R}_{XX}^{(b)}$ and $\hat{R}_{XY}^{(b)}$. Then. $\hat{\beta}^{(b)}$ will be estimated: $\hat{\beta}^{(b)} = (\hat{R}_{XX}^{(b)})^{-1} \hat{R}_{XY}^{(b)}$
+
+To evaluate variable selection stability, different selection procedures will be applied to each perturbed matrix:
+
+1.  Backward elimination procedure, using BIC score as model-selection criteria.
+
+2.  LASSO regression, with penalty value $\lambda$ to be selected over a pre-specified grid, or determined using the error-control (false-discovery) procedure (Meinshausen and Buhlmann, 2024) by setting false-discovery rate \< 0.01.
+
+For each iteration $b$, selected variables will be recorded. Selection probability for variable $j$ will then be estimated as:
+
+$$
+\hat{\Pi}_j^{\lambda} = \frac{1}{B}\text{(number of times $X_j$ is selected)}
+$$
+
+and the stable selected set is then defined as:
+
+$$
+\hat{S}^{stable} = \{j: \text{max}_{\lambda \in \Lambda}\ \Pi_{j}^{\lambda} \geq \pi_{thr}\}
+$$
+
+Different $\pi_{thr}$ values (0.5, 0.6, 0.7, 0.8, 0.9) will be evaluated.
+
+The simulation will be repeated across sample sizes: 200, 2000, 20000, with number of variables $p= 50$ predictors.
+
+Finally, the selection stability results will be compared against the true $\beta$ and $\hat{\beta}$ - estimated coefficients from $\hat{R}$.
+
+### Table Shells & Figures
+
+**Table 1: Block-level selection stability by comparing with the true signal and noise variables.**
+
+| Block ID | Block type | Method |  Signal stability Mean (SD) |  noise stability Mean (SD) | Average #signals selected | Average #noise selected |
+|------:|----------------------------|---------------|-----------:|-----------:|----------:|----------:|
+| 1 | Pure noise, weak correlation | BIC backward | NA |  | NA |  |
+| 1 | Pure noise, weak correlation | Lasso | NA |  | NA |  |
+| 2 | Pure noise, strong correlation | BIC backward | NA |  | NA |  |
+| 2 | Pure noise, strong correlation | Lasso | NA |  | NA |  |
+| 3 | All signal | BIC backward |  | NA |  | NA |
+| 3 | All signal | Lasso |  | NA |  | NA |
+| 4 | One signal with null proxies | BIC backward |  |  |  |  |
+| 4 | One signal with null proxies | Lasso |  |  |  |  |
+| 5 | Mixed signal/noise | BIC backward |  |  |  |  |
+| 5 | Mixed signal/noise | Lasso |  |  |  |  |
+| 6 | Mixed-sign signals | BIC backward |  | NA |  | NA |
+| 6 | Mixed-sign signals | Lasso |  | NA |  | NA |
+
+Mean signal stability: Among the true signal variables in this block, what is the average stability score? How often are they selected on average?
+
+Average #signals selected: Across perturbation iterations, how many true signal variables from this block were selected on average
+
+**Table 2: Variable-level selection stability**
+
+| Variable | Block ID | Block type | True beta | Estimated beta from starting R | Signal status | Stability, BIC backward | Stability, Lasso |
+|--------:|--------:|---------|--------:|--------:|---------|--------:|--------:|
+| X1 | 1 | Pure noise, weak correlation | 0 |  | Noise |  |  |
+| X2 | 1 | Pure noise, weak correlation | 0 |  | Noise |  |  |
+| X3 | 1 | Pure noise, weak correlation | 0 |  | Noise |  |  |
+| X4 | 1 | Pure noise, weak correlation | 0 |  | Noise |  |  |
+| ... | ... | ... | ... | ... | ... | ... | ... |
+| X50 | 6 |  |  |  |  |  |  |
+
+**Table 3: Accuracy summary by sample size**
+
+| Sample size | Method | TPR | FPR | FDR |  Selected model size Mean (SD) |  Signal stability Mean (SD) |  Noise stability Mean (SD) |
+|--------:|-----------|------:|------:|------:|---------:|--------:|--------:|
+| 200 | BIC backward |  |  |  |  |  |  |
+| 200 | Lasso |  |  |  |  |  |  |
+| 2,000 | BIC backward |  |  |  |  |  |  |
+| 2,000 | Lasso |  |  |  |  |  |  |
+| 20,000 | BIC backward |  |  |  |  |  |  |
+| 20,000 | Lasso |  |  |  |  |  |  |

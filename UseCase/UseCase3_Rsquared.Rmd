@@ -1,0 +1,301 @@
+---
+title: "Use Case - Uncertainty Quantification for $R^2$ in Multiple Linear Regression"
+author: "Jon Ong"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background & Literature (tbc)
+
+## **Research Goal**
+
+This use case will quantify uncertainty in the coefficient of determination, $R^2$, by treating it as a function of the joint correlation matrix $R$:
+
+$$
+R^2 = R_{XY}^{T}R_{XX}^{-1}R_{XY}
+$$
+
+We will propagate uncertainty in the estimated joint correlation matrix $\hat R$ to uncertainty in $R^2(\hat R)$, and evaluate how this uncertainty changes across sample size, signal strength, and conditioning of the predictor correlation structure $R_{XX}$.
+
+## Methods
+
+We will study uncertainty in the coefficient of determination, $R^2$, by treating it as a function of the joint correlation matrix of $(Y, X)$. For standardized variables, the population $R^2$ can be written as
+
+$$
+R^2(R) = R_{XY}^{T}R_{XX}^{-1}R_{XY},
+$$
+
+where $R_{XX}$ is the predictor correlation matrix and $R_{XY}$ is the vector of correlations between the predictors and the outcome. This formula allows uncertainty in the estimated joint correlation matrix $\hat R$ to be propagated directly to uncertainty in $R^2$.
+
+For each simulation scenario, we will first specify a population predictor correlation matrix $R_{XX}$, a coefficient vector $\beta$, and a target population value $R^2_{\text{true}}$. The data-generating model is
+
+$$
+Y = X^T\beta + \varepsilon,
+\qquad
+X \sim N(0, R_{XX}),
+\qquad
+\varepsilon \sim N(0, \sigma^2),
+$$
+
+with $X \perp \varepsilon$. Given $R_{XX}$ and $\beta$, the variance of signal ( $X^T \beta$ ) is
+
+$$
+S = \beta^T R_{XX}\beta.
+$$
+
+The error variance $\sigma^2$ will be chosen to achieve the target population $R^2$:
+
+$$
+\sigma^2 =
+S\left(
+\frac{1 - R^2_{\text{true}}}{R^2_{\text{true}}}
+\right).
+$$
+
+This design allows scenarios with different predictor correlation structures and signal patterns to be compared at the same overall level of explanatory strength.
+
+For each generated dataset, we will estimate the empirical joint correlation matrix
+
+$$
+\hat R = \operatorname{Cor}(Y, X),
+$$
+
+with block structure
+
+$$
+\hat R =
+\begin{pmatrix}
+\hat R_{YY} & \hat R_{YX} \\
+\hat R_{XY} & \hat R_{XX}
+\end{pmatrix}.
+$$
+
+The observed coefficient of determination will be computed as
+
+$$
+\hat R^2 =
+\hat R_{XY}^{T}
+\hat R_{XX}^{-1}
+\hat R_{XY}.
+$$
+
+To quantify uncertainty, we will generate a 95% reverse-containment perturbation cloud of plausible joint correlation matrices around $\hat R$ using our MCMC approach:
+
+$$
+\left\{
+\hat R^{(b)}
+\right\}_{b=1}^{B},
+\qquad B = 20{,}000.
+$$
+
+For each perturbed matrix, we will compute
+
+$$
+R^{2(b)}
+=
+\hat R_{XY}^{(b)T}
+\left(
+\hat R_{XX}^{(b)}
+\right)^{-1}
+\hat R_{XY}^{(b)}.
+$$
+
+We will summarize this distribution of $R^2$ using mean, median, min, max, and interval width. Histograms will also be used to visualize the distribution of $R^2$.
+
+### Calibration
+
+We will repeat $M$ times the above simulation (set $M=200$ ). Across repeated simulation replicates, we will evaluate calibration by comparing the nominal 95% perturbation intervals with the known population value $R^2_{\text{true}}$. Empirical coverage will be computed as
+
+$$
+\text{Empirical coverage}
+=
+\frac{1}{M}
+\sum_{m=1}^{M}
+\mathbf{1}
+\left\{
+R^2_{\text{true}} \in [L_m, U_m]
+\right\},
+$$
+
+where $[L_m, U_m]$ is the min and max of $R^2$ from replicate $m$. The mean interval width will be computed as
+
+$$
+\text{Mean interval width}
+=
+\frac{1}{M}
+\sum_{m=1}^{M}
+(U_m - L_m).
+$$
+
+### Simulation Design: Specifying $R_{XX}$, $\beta$, Target $R^2$, and $n$
+
+The simulation scenarios will vary the predictor correlation structure $R_{XX}$, coefficient vector $\beta$, and the target population $R^2$. These factors determine the population joint correlation structure and therefore the corresponding mapping to $R^2 = R_{XY}^T R_{XX}^{-1} R_{XX}$
+
+The predictor correlation matrix $R_{XX}$ determines the geometry of the predictor space. We consider an AR(1) structure,
+
+$$
+(R_{XX})_{ij} = \rho^{|i-j|},
+$$
+
+where $\rho \in \{0.2, 0.5, 0.8\}$, representing weak, moderate, and strong predictor correlation. Larger values of $\rho$ induce stronger colinearity among nearby predictors, making $R_{XX}$ more ill-conditioned, leading $R_{XX}^{-1}$ to be more sensitive to perturbations.
+
+The coefficient vector $\beta$ determines how the signal is distributed across the predictor space. Different $\beta$ scenarios will be evaluated since $R^2$ is determined by the signal quantity $\beta^T R_{XX}\beta$, not only on the magnitude of individual coefficients. When predictors are correlated, the same coefficient size can contribute differently to $R^2$ depending on whether the signal is concentrated among highly correlated predictors, spread (evenly) across predictors, or having flipped signs.
+
+To compare scenarios at the same level of overall explanatory strength, we will specify target values of $R^2_{\text{true}}$ and choose $\sigma^2$ accordingly. To account for sampling variability, sample size of $n \in (200, 500, 1000)$ will be evaluated in this simulation.
+
+Table 1: Specification of different signal scenarios
+
+| Signal scenario | Signal pattern | Example $\beta$ structure | Purpose |
+|------------------|------------------|------------------|--------------------|
+| S1 | All strong signals | $\beta_j = 0.6$ for all signal predictors | Evaluates uncertainty in $R^2$ when the signal is strong and distributed across predictors |
+| S2 | All weak signals | $\beta_j = 0.2$ for all signal predictors | Evaluates whether weak distributed signals lead to wider uncertainty in $R^2$ |
+| S3 | Mixed weak and strong signals | Some $\beta_j = 0.6$, others $\beta_j = 0.2$ | Evaluates how heterogeneous signal strength affects uncertainty in $R^2$ |
+| S4 | One strong signal, otherwise weak | One $\beta_j = 0.8$, others $\beta_j = 0.2$ | Evaluates whether a dominant predictor stabilizes $R^2$, especially under correlated predictors |
+| S5 | Positive/negative sign flip | $\beta_j$ alternates between $+0.4$ and $-0.4$ | Evaluates cancellation effects and whether opposing signals increase uncertainty in $R^2$ |
+
+### Simulation Procedure
+
+For each combination of $\rho$, signal pattern, target $R^2_{\text{true}}$, and sample size $n$, we will:
+
+1.  construct $R_{XX}$ using the AR(1) structure $(R_{XX})_{ij} = \rho^{|i-j|}$
+2.  specify $\beta$ according to the signal scenario
+3.  compute $S = \beta^T R_{XX}\beta$
+4.  choose $\sigma^2 = S(1-R^2_{\text{true}})/R^2_{\text{true}}$
+5.  generate $X \sim N(0, R_{XX})$ with sample size $n$
+6.  generate $Y = X^T\beta + \varepsilon$, where $\varepsilon \sim N(0,\sigma^2)$
+7.  estimate $\hat R = \operatorname{Cor}(Y, X)$
+8.  map $R \mapsto R^2$ by computing $\hat R^2 = \hat R_{XY}^T \hat R_{XX}^{-1}\hat R_{XY}$
+9.  generate a 95% reverse-containment perturbation cloud around $\hat R$;
+10. compute $R^{2(b)}$ for each perturbed matrix;
+11. summarize the distribution of perturbed $R^2$ and evaluate calibration across repeated simulation replicates.
+
+Three analysis will be carried out:
+
+-   Primary analysis: we will use the 95% reverse-containment perturbation cloud and summarize uncertainty of $R^2$.
+
+-   Secondary analysis 1: bootstrap-based uncertainty
+
+    This analysis will be served as a benchmark against our perturbation approach. Step 9 above will be replaced by bootstrapping data (step 6) instead of the MCMC approach. The resulting $R^2$ will be reported using the 2.5th and 97.5th percentiles.
+
+-   Secondary analysis 2: train/ test split
+
+    This analysis aims to measure out-of-sample predictive performance (and its uncertainty).
+
+    -   In step 6, we will split the full dataset $(Y, X)$ into training and test sets to obtain $\hat R_{train}$ and $\hat R_{test}$.
+
+    -   In step 9, $\hat R_{train}$ will be used to generate 95% reverse-containment perturbation cloud.
+
+    -   In step 10, instead of $R^{2(b)}$, we will compute the out-of-sample performance $R^{2(b)}_{test}$ using
+
+        $$
+        R^{2(b)}_{\text{test}}
+        =
+        2\hat\beta^{(b)T}_{\text{train}}\hat R_{XY,\text{test}}
+        -
+        \hat\beta_{\text{train}}^{(b)T}
+        \hat R_{XX,\text{test}}
+        \hat\beta_{\text{train}}^{(b)}
+        $$
+
+        where\
+        $$
+        \hat{\beta}_{\text{train}}^{(b)}
+        =
+        \left(
+        \hat{R}_{XX,\text{train}}^{(b)}
+        \right)^{-1}
+        \hat{R}_{XY,\text{train}}^{(b)}
+        $$
+
+## Results & Table Shells
+
+Table 2: (Primary Analysis) $R^2$ uncertainty summary from one simulated dataset
+
+| Signal pattern | $\rho$ | Sample Size $n$ | True $R^2$ | Observed $\hat R^2$ | Perturbation median | Perturbation mean | Min $L$ | Max $U$ | Range |
+|--------|-------:|--------|-------:|-------:|-------:|-------:|-------:|-------:|-------:|
+| S1: All strong | 0.2 | 200 |  |  |  |  |  |  |  |
+| S2: All weak | 0.2 | 200 |  |  |  |  |  |  |  |
+| S3: Mixed weak/strong | 0.2 | 200 |  |  |  |  |  |  |  |
+| S4: One strong, otherwise weak | 0.2 | 200 |  |  |  |  |  |  |  |
+| S5: Sign flip | 0.2 | 200 |  |  |  |  |  |  |  |
+| S1 | 0.5 | 200 |  |  |  |  |  |  |  |
+| S2 | 0.5 | 200 |  |  |  |  |  |  |  |
+
+Table 3: (Primary Analysis) Calibration summary for $R^2$'s uncertainty across repeated simulation (simulate 200 times).
+
+| Signal pattern | $\rho$ | Sample Size $n$ | True $R^2$ | Mean observed $\hat R^2$ | Bias | MonteCarlo SD of observed $\hat{R}^2$ | Empirical Coverage | Mean interval width |
+|--------|-------:|--------|-------:|-------:|-------:|-------:|-------:|-------:|
+| S1: All strong | 0.2 | 200 |  |  |  |  |  |  |
+| S2: All weak | 0.2 | 200 |  |  |  |  |  |  |
+| S3: Mixed weak/strong | 0.2 | 200 |  |  |  |  |  |  |
+| S4: One strong, otherwise weak | 0.2 | 200 |  |  |  |  |  |  |
+| S5: Sign flip | 0.2 | 200 |  |  |  |  |  |  |
+| S1 | 0.5 | 200 |  |  |  |  |  |  |
+| S2 | 0.5 | 200 |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |  |  |
+|  |  |  |  |  |  |  |  |  |
+
+Tables 4 & 5: (Secondary Analysis 1 - Bootstrap), same tables as Tables 2 & 3.
+
+Table 6: (Secondary Analysis 2 - OOS performance), one simulation
+
+| Signal pattern | $\rho$ | $n_{\text{train}}$ | $n_{\text{test}}$ | True $R^2$ | Training $\hat R^2$ | Test $R^2_{\text{test}}$ | 95% CI ($R^2_{test}$) |
+|---------|--------:|--------:|--------:|--------:|--------:|--------:|--------:|
+
+Table 7: (Secondary Analysis 2 - OOS performance), calibration
+
+### Appendix
+
+#### Linear Additive Model
+
+Consider the linear additive model setup:
+
+$$
+Y = X^T\beta + \varepsilon
+$$
+
+where $X \sim N(0, \Sigma_{XX})$, $\varepsilon \sim N(0, \sigma^2)$ and $X \perp \varepsilon$.
+
+Here, $X$ is a $p \times 1$ vector of predictors, $\Sigma_{XX}$​ is the predictor correlation matrix, and $\beta$ is a $p \times 1$ regression coefficient vector. True signal variables are defined by nonzero regression coefficients, while null/noise variables have coefficients equal to zero.
+
+#### Population Joint Correlation/ Covariance Structure
+
+The predictor correlation structure $R_{XX}$ is specified first. Given $R_{XX}, \beta$, and $\sigma^2$, the population joint covariance matrix of (Y,X) is $$
+\Sigma =
+\begin{bmatrix}
+\Sigma_{YY} & \Sigma_{YX} \\
+\Sigma_{XY} & \Sigma_{XX}
+\end{bmatrix}
+$$
+
+where $$
+\begin{aligned}
+\Sigma_{YY} &= Var(Y)  \\ &= Var(X^T\beta + \varepsilon) \\ &= \beta^T\Sigma_{XX} \beta \ + \ \sigma^2
+\\
+\Sigma_{XY} &= Cov(X,Y) \\ &= Cov(X, X^T\beta + \varepsilon) \\&=  \Sigma_{XX}\beta
+\end{aligned}
+$$
+
+If predictors are standardized, then $\Sigma_{XX}=R_{XX}$. The joint covariance matrix can then be converted to a joint correlation matrix. The MCMC perturbation procedure operates in this correlation space.
+
+Mean signal stability: Among the true signal variables in this block, what is the average stability score? How often are they selected on average?
+
+Average #signals selected: Across perturbation iterations, how many true signal variables from this block were selected on average
+
+#### AR(1) Correlation Structure
+
+For example, a $R_{XX}$ structure with $p=5$ is as follows:
+
+$$
+R_{XX} =
+\begin{pmatrix}
+1 & \rho & \rho^2 & \rho^3 & \rho^4 \\
+\rho & 1 & \rho & \rho^2 & \rho^3 \\
+\rho^2 & \rho & 1 & \rho & \rho^2 \\
+\rho^3 & \rho^2 & \rho & 1 & \rho \\
+\rho^4 & \rho^3 & \rho^2 & \rho & 1
+\end{pmatrix},
+$$

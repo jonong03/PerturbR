@@ -718,7 +718,7 @@ Otherwise, when sample size is insufficient, became poorly under-calibrated.
 
 Target: $I(S \in CR_{1-\alpha}(R))$
 
-Setup: Start with a graph $G$ that is parametrized by $R_0$. We observed data $X$ with sample size $n$ and derive sample correlation $S$.
+Setup: Start with a graph $G$ that is parametrized by $R_0$. We have observed data $X$ with sample size $n$ and derive its sample correlation $S$.
 
 Procedure:
 
@@ -734,10 +734,12 @@ Procedure:
 
         -   $I(S \in CR_{1-\alpha}(R') )$ is an indicator function for the reverse containment status. $I(\cdot)=1$ if $S$ lies within the confidence region of $R'$ at level $1-\alpha$. The center is $R'$.
 
-            More specifically, it is checking the Mahalanobis distance between $S$ and $R'$ with $R'$ as the center: $(s−r′)^T \Psi(R′)^{-1}(s−r′)≤\chi^2_{d,1−α}​$, where $d=\frac{p(p-1)}{2}$.
+            More specifically, this is checking the Mahalanobis distance between $S$ and $R'$ with $R'$ as the center: $(s−r′)^T \Psi(R′)^{-1}(s−r′)≤\chi^2_{d,1−α}​$, where $d=\frac{p(p-1)}{2}$.
     3.  Simulate $u \sim Unif(0,1)$, If $A(R→R′) \geq u$, then accept $R'$ as the next state (update $Q^{[t]} = R'$). Otherwise, the next state is still $R$ (update $Q^{[t]} = Q^{[t-1]} = R$).
 
-Other notes: Burnin period was set as 20% of samples in the chain.
+Other notes: no burnin was set for the chain.
+
+### Checking samples are uniformly distributed between (0,1)
 
 ### 3 nodes
 
@@ -784,6 +786,14 @@ Other notes: Burnin period was set as 20% of samples in the chain.
 ![](docs/docs/plots/ReverseContainment_MCMC/acf_plots_n5000.png){width="693"}
 
 ### 20 nodes
+
+### Simulation 6: Adaptive MCMC versus bootstrap
+
+What to compare:
+
+1.  Reverse containment for bootstrap?
+2.  ESS?
+3.  Computational cost (time and memory)
 
 ## Simulation X: Computing Resources
 
