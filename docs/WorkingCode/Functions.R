@@ -1,4 +1,62 @@
 # Functions
+
+# Compute Covariance matrix for a correlation matrix R
+calc_psi <- function(R, n = 1) {
+  R <- as.matrix(R)
+  p <- nrow(R)
+  
+  if (ncol(R) != p) { stop("R must be a square matrix.") }
+  
+  idx <- list()
+  k <- 1
+  
+  for (i in seq_len(p - 1)) {
+    for (j in (i + 1):p) {
+      idx[[k]] <- c(i, j)
+      k <- k + 1
+    }
+  }
+  
+  k <- length(idx)
+  psi <- diag(k)
+  
+  for (i in seq_len(k)) {
+    e <- idx[[i]][1]
+    f <- idx[[i]][2]
+    
+    psi[i, i] <- (1 - R[e, f]^2)^2
+    
+    if (i > 1) {
+      for (j in seq_len(i - 1)) {
+        g <- idx[[j]][1]
+        h <- idx[[j]][2]
+        
+        tmp <- c(
+          (R[e, g] - R[e, f] * R[f, g]) *
+            (R[f, h] - R[f, g] * R[g, h]),
+          
+          (R[e, h] - R[e, g] * R[g, h]) *
+            (R[f, g] - R[f, e] * R[e, g]),
+          
+          (R[e, g] - R[e, h] * R[h, g]) *
+            (R[f, h] - R[f, e] * R[e, h]),
+          
+          (R[e, h] - R[e, f] * R[f, h]) *
+            (R[f, g] - R[f, h] * R[h, g])
+        )
+        
+        psi[i, j] <- 0.5 * sum(tmp)
+        psi[j, i] <- psi[i, j]
+      }
+    }
+  }
+  
+  return(psi/n)
+}
+
+
+
+
 wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FALSE) {
   # Rpop     : Target (true) correlation matrix, this will be treated as the center and used to compute variance
   # Rsample  : Estimated correlation matrix
@@ -13,7 +71,7 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
     # R: untransformed correlation matrix
     
     rvec <- R[lower.tri(R)]
-    cov <- metaSEM::asyCov(R, n= asy.n)
+    cov <- calc_psi(R, n= asy.n)
     
     #denominator: 1-rho^2
     #denominator[i,j] = (1-r_i^2)*(1-r_j^2)
@@ -46,7 +104,7 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
     center_vec <- Rpop_vec
     sample_vec <- Rsample_vec
     
-    Psi <- metaSEM::asyCov(Rpop, n = asy.n)  # asymptotic covariance in r-space
+    Psi <- calc_psi(Rpop, n = asy.n)  # asymptotic covariance in r-space
   }
   
   Psi0 <- Psi* asy.n   # covariance when sample size = 1, use this to study eigenstructure
@@ -70,7 +128,7 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
 rwaldcloud<- function(R0, n= 1e5, B=1, max.iter= B*10, output=c("full","lower"), scale=1){
   output <- match.arg(output)
   r0 <- R0[lower.tri(R0)]
-  Psi0<- scale*metaSEM::asyCov(R0, n = 1)
+  Psi0<- scale*calc_psi(R0, n = 1)
   d<- ncol(R0)
   ps<- length(r0)
   
@@ -129,14 +187,14 @@ rwaldcloud<- function(R0, n= 1e5, B=1, max.iter= B*10, output=c("full","lower"),
 }
 rwaldcloud<- function(R0, Psi, n= 1e5, B=1, tol=1e-5, verbose=FALSE){
   # Psi must be defined at sample size = 1
-  # If Psi is not defined, it will be estimated by metaSEM::asyCov(R0, n= n)
+  # If Psi is not defined, it will be estimated by calc_psi(R0, n= n)
   
   d<- ncol(R0)
   ps<- d*(d-1)/2
   out <- array(NA_real_, dim = c(d, d, B))
   
   if(missing(Psi)){
-    Psi <- metaSEM::asyCov(R0, n = n)
+    Psi <- calc_psi(R0, n = n)
   }
   
   # Eigen Decomposition and check if R0 (and Psi0) can be decomposed
@@ -193,7 +251,7 @@ rwaldcloud<- function(R0, Psi, n= 1e5, B=1, tol=1e-5, verbose=FALSE){
 runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output=c("full","lower")){
   output <- match.arg(output)
   r0 <- R0[lower.tri(R0)]
-  Psi0<- metaSEM::asyCov(R0, n = 1)
+  Psi0<- calc_psi(R0, n = 1)
   d<- ncol(R0)
   ps<- length(r0)
   
@@ -241,7 +299,7 @@ runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, output=c("full","lower")){
 runifcloud<- function(R0, n= 1e5, B=1, alpha= 0.05, max.iter= B*10, output=c("full","lower")){
   output <- match.arg(output)
   r0 <- R0[lower.tri(R0)]
-  Psi0<- metaSEM::asyCov(R0, n = 1)
+  Psi0<- calc_psi(R0, n = 1)
   d<- ncol(R0)
   ps<- length(r0)
   
@@ -335,12 +393,12 @@ make_mcmc<- function(S, asy.n, NCHAIN=1000, init= S, alpha=0.05,
     rcurrent<- Rcurrent[lower.tri(Rcurrent)]
     
     # Step 1: Draw R* (named as Rs)
-    Psi_Rcurrent<- metaSEM::asyCov(Rcurrent, n = asy.n)
+    Psi_Rcurrent<- calc_psi(Rcurrent, n = asy.n)
     
     Rs<- rwaldcloud(Rcurrent, Psi= scale_factor*Psi_Rcurrent, B = 1) %>% drop()
     rs<- Rs[lower.tri(Rs)]
     
-    Psi_Rs<- metaSEM::asyCov(Rs, n= asy.n)
+    Psi_Rs<- calc_psi(Rs, n= asy.n)
     # Step 2: Acceptance Ratio
     partA<- dmvnorm(x= rcurrent, mean = rs, sigma= Psi_Rs, log= T)
     partB<- dmvnorm(x= rs, mean= rcurrent, sigma= Psi_Rcurrent, log=T)
