@@ -9,7 +9,6 @@ library(future.apply)
 library(data.table)
 library(mvtnorm)
 library(parallelly)
-library(metaSEM)
 
 
 source("docs/WorkingCode/Functions.R")   # source required functions
