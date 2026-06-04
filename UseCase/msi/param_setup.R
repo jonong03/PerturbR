@@ -7,9 +7,7 @@ B = 300
 alpha = 0.05
 
 rho_ = c(0.2, 0.5, 0.8)
-rho_ = c(0.8)
 ss_ = c(200, 500, 1000)
-ss_ = c(1000)
 
 beta.s1 = rep(0.6, nvar)
 beta.s2 = rep(0.2, nvar)

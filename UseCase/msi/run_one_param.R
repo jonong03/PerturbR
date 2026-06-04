@@ -9,7 +9,7 @@ library(future.apply)
 library(data.table)
 library(mvtnorm)
 library(parallelly)
-
+library(dplyr)
 
 source("docs/WorkingCode/Functions.R")   # source required functions
 source("UseCase/usecase_functions.R")      # source parameters for simulation
@@ -38,6 +38,7 @@ ss_j   <- ss_[param_grid$ss_id[j]]
 M_j <- gen_AR1(rho = rho_j, p = nvar)
 
 n_workers <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", unset = "1"))
+n_workers <- min(nrow(param_grid), n_workers)
 
 plan(multisession, workers = n_workers)
 runs_j <- future_lapply(seq_len(B), function(b) {
