@@ -9,6 +9,12 @@
 #SBATCH --mail-user=ong00042@umn.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
 
-module load R
+module purge
+module load R/4.2.2-gcc-8.2.0-vp7tyde
+
+which R
+R --version
+which Rscript
+
 
 Rscript UseCase/msi/run_one_param.R ${SLURM_ARRAY_TASK_ID}

@@ -1,6 +1,6 @@
 # Param set
 library(data.table)
-var = 5
+nvar = 5
 ktrue = 0.9
 nchain = 20000
 B = 300

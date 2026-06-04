@@ -1,14 +1,21 @@
 # script to run in msi
-user_lib <- "~/R/x86_64-pc-linux-gnu-library/4.4"
+user_lib <- "~/R/x86_64-pc-linux-gnu-library/4.2"
 .libPaths(c(user_lib, .libPaths()))
+
+message("Using R version: ", R.version.string)
+print(.libPaths())
 
 library(future.apply)
 library(data.table)
 library(mvtnorm)
 library(parallelly)
+library(metaSEM)
+
 
 source("docs/WorkingCode/Functions.R")   # source required functions
+source("UseCase/usecase_functions.R")      # source parameters for simulation
 source("UseCase/msi/param_setup.R")      # source parameters for simulation
+
 
 args <- commandArgs(trailingOnly = TRUE)
 j <- as.integer(args[1])
