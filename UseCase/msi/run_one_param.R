@@ -19,9 +19,9 @@ source("UseCase/msi/param_setup.R")      # source parameters for simulation
 args <- commandArgs(trailingOnly = TRUE)
 j <- as.integer(args[1])
 
-dir.create("UseCase/msi/sim_outputs", showWarnings = FALSE)
+dir.create(paste0("UseCase/msi/sim_outputs_v",nvar), showWarnings = FALSE)
 
-fout <- sprintf("UseCase/msi/sim_outputs/res_param_%03d.rds", j)
+fout <- sprintf(paste0("UseCase/msi/sim_outputs_v",nvar,"/res_param_%03d.rds"), j)
 
 if (file.exists(fout)) {
   message("Output already exists for j = ", j, ". Skipping.")

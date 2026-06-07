@@ -1,7 +1,7 @@
 # Param set
 library(data.table)
 nvar = 15
-ktrue = 0.9
+ktrue = 0.8
 nchain = 20000
 B = 300
 alpha = 0.05
