@@ -112,7 +112,8 @@ Rcpp::sourceCpp(tmp)
   #param.m[, method := rep(c("analytical", "bootstrap", "perturbR"), length.out = .N)]
 }
 {
-  ncores <- detectCores()-1
+  #ncores <- detectCores()-1
+  ncores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
   B = 500 # Number of Monte Carlo Replicates
   BOOT.ITER = 300   #J
   nchain = 3000
