@@ -1,15 +1,70 @@
-# Import functions --------------------------------------------------------
-pacman::p_load(xtable, future.apply, data.table, rethinking, dplyr, reticulate, mvtnorm, Rcpp)
-source("https://raw.githubusercontent.com/jonong03/PerturbR/main/docs/WorkingCode/Functions.R")
-cpp_url <- "https://raw.githubusercontent.com/jonong03/PerturbR/main/docs/WorkingCode/calc_psi.cpp"
-tmp <- tempfile(fileext = ".cpp")
-download.file(cpp_url, tmp)
-Rcpp::sourceCpp(tmp)
+# ========================================================================
+# PerturbR R2 Simulation - Primary Analysis
+# One SLURM array task = one parameter scenario
+# ========================================================================
 
-#use_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR-CDA/.venv/bin/python", required = TRUE)
-#py_config() 
-#source_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR-CDA/process1.py")
-#source_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR-CDA/boss_py.py")
+
+# Packages ----------------------------------------------------------------
+
+library(data.table)
+library(mvtnorm)
+library(Rcpp)
+
+source("docs/WorkingCode/Functions.R")
+Rcpp::sourceCpp("docs/WorkingCode/calc_psi.cpp")
+source("UseCase/msi/params.R")
+
+
+# Read SLURM task ID -------------------------------------------------------
+
+args <- commandArgs(trailingOnly = TRUE)
+
+if (length(args) < 1) {
+  stop("No scenario ID supplied.")
+}
+
+task_id <- as.integer(args[1])
+
+if (is.na(task_id)) {
+  stop("Scenario ID must be an integer.")
+}
+
+if (task_id < 1 || task_id > nrow(param.m)) {
+  stop(sprintf("Invalid scenario ID %d. param.m contains %d scenarios.",
+               task_id, nrow(param.m)))
+}
+
+param.m <- param.m[scenarioID == task_id]
+
+if (nrow(param.m) != 1) {
+  stop("Expected exactly one parameter scenario.")
+}
+
+cat("Running scenario:", task_id, "\n")
+print(param.m)
+
+
+# Simulation settings -----------------------------------------------------
+
+ncores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
+
+B <- 500
+BOOT.ITER <- 300
+nchain <- 3000
+
+cat("Monte Carlo replicates:", B, "\n")
+cat("Bootstrap samples:", BOOT.ITER, "\n")
+cat("PerturbR samples:", nchain, "\n")
+cat("CPUs:", ncores, "\n")
+
+
+# Reproducibility ---------------------------------------------------------
+
+RNGkind("L'Ecuyer-CMRG")
+set.seed(20260406 + task_id)
+
+
+# Helper functions --------------------------------------------------------
 
 {
   gen_AR1 <- function(p, rho = 0.6){
@@ -82,167 +137,191 @@ Rcpp::sourceCpp(tmp)
   }
 }
 
+# Data generation ---------------------------------------------------------
 
+cat("\nGenerating data...\n")
 
-# Parameter Matrix --------------------------------------------------------
-{
-  gc()
-  R2true <- c(0.5)
-  phi <- c(0, 0.2, 0.5, 0.8)
-  ss <- c(1000, 3000, 5000)
-  p <- c(2)
-  
-  beta.list <- c(
-    "function(p) rep(0.6, p)",
-    "function(p) rep(0.2, p)",
-    "function(p) rep(c(-0.4, 0.4), length= p)"
-  )
-  
-  param.m <- expand.grid(R2true = R2true, phi = phi, ss = ss, p = p, beta = beta.list,stringsAsFactors = FALSE) %>% as.data.table
-  param.m$beta_value <- Map(
-    function(f, p) {
-      fun <- eval(parse(text = f))
-      fun(p)
-    },
-    param.m$beta,
-    param.m$p
-  )
-  #param.m[, scenarioID := .I]
-  #param.m <- param.m[rep(seq_len(nrow(param.m)), each = 3), ]
-  #param.m[, method := rep(c("analytical", "bootstrap", "perturbR"), length.out = .N)]
-}
-{
-  #ncores <- detectCores()-1
-  ncores <- as.integer(Sys.getenv("SLURM_CPUS_PER_TASK", "1"))
-  B = 500 # Number of Monte Carlo Replicates
-  BOOT.ITER = 300   #J
-  nchain = 3000
-}
-param.m
+DT.list <- datagen(
+  p = param.m$p[1],
+  beta_value = param.m$beta_value[[1]],
+  ss = param.m$ss[1],
+  phi = param.m$phi[1],
+  R2true = param.m$R2true[1],
+  ITER = B
+)
 
+cat("Generated", length(DT.list), "Monte Carlo datasets.\n")
 
-# Data Generation ---------------------------------------------------------
-{
-  param.m[, DT.list := Map(
-    datagen,
-    p, beta_value, ss, phi, R2true, ITER= B)]
-}
 
 # Analytical CI -----------------------------------------------------------
 
 FL_eval <- function(DT.list, p, ss, R2true) {
   
-  # Rhat = cor(DT), then compute R2
-  R2hat <- sapply(DT.list, function(DT) computeRsq(cor(as.matrix(DT))))
+  R2hat <- vapply(
+    DT.list,
+    function(DT) computeRsq(cor(DT)),
+    numeric(1)
+  )
   
-  # CI for each Monte Carlo replicate
-  fl.ci <- sapply(R2hat, function(r2) MBESS::ci.R2(R2 = r2, K = p, N = ss))
-  lb <- unlist(fl.ci[1, ])
-  ub <- unlist(fl.ci[3, ])
+  fl.ci <- lapply(
+    R2hat,
+    function(r2) MBESS::ci.R2(R2 = r2, K = p, N = ss)
+  )
   
-  c(coverage.fl = mean(R2true >= lb & R2true <= ub),
-    width.fl    = mean(ub - lb))
+  lb <- vapply(fl.ci, function(x) x[1], numeric(1))
+  ub <- vapply(fl.ci, function(x) x[3], numeric(1))
+  
+  return(c(
+    coverage.fl = mean(R2true >= lb & R2true <= ub),
+    width.fl = mean(ub - lb)
+  ))
 }
-fl.result <- Map(
-  FL_eval,
-  param.m$DT.list, param.m$p, param.m$ss, param.m$R2true)
+
+
+cat("\nRunning analytical CI...\n")
+
+fl.result <- FL_eval(
+  DT.list = DT.list,
+  p = param.m$p[1],
+  ss = param.m$ss[1],
+  R2true = param.m$R2true[1]
+)
+
+print(fl.result)
 
 
 # Bootstrap CI ------------------------------------------------------------
-BOOT_eval <- function(DT.list, R2true, BOOT.ITER) {
-  boot.ci <- lapply(DT.list, function(DT) {
-    empR2dist <- sapply(seq_len(BOOT.ITER), function(i) {
-      boot.id <- sample.int(nrow(DT), nrow(DT), replace = TRUE)
-      DTboot <- DT[boot.id, , drop = FALSE]
-      computeRsq(cor(DTboot))
-    })
-    quantile(empR2dist, c(0.025, 0.975))
-  })
+
+BOOT_eval <- function(DT.list, R2true, BOOT.ITER, ncores) {
+  
+  cores <- min(ncores, length(DT.list))
+  
+  boot.ci <- parallel::mclapply(
+    DT.list,
+    function(DT) {
+      
+      empR2dist <- vapply(
+        seq_len(BOOT.ITER),
+        function(i) {
+          boot.id <- sample.int(nrow(DT), size = nrow(DT), replace = TRUE)
+          DTboot <- DT[boot.id, , drop = FALSE]
+          
+          computeRsq(cor(DTboot))
+        },
+        numeric(1)
+      )
+      
+      quantile(empR2dist, probs = c(0.025, 0.975), names = FALSE)
+    },
+    mc.cores = cores,
+    mc.preschedule = FALSE,
+    mc.set.seed = TRUE
+  )
   
   boot.ci <- do.call(cbind, boot.ci)
   
-  c(
+  return(c(
     coverage.boot = mean(R2true >= boot.ci[1, ] & R2true <= boot.ci[2, ]),
     width.boot = mean(boot.ci[2, ] - boot.ci[1, ])
-  )
+  ))
 }
-boot.result <- parallel::mclapply(
-  seq_len(nrow(param.m)),
-  function(i) {
-    tryCatch(
-      BOOT_eval(DT.list = param.m$DT.list[[i]],R2true = param.m$R2true[i],BOOT.ITER = BOOT.ITER),
-      error = function(e) {
-        list(
-          scenarioID = param.m$scenarioID[i],
-          row = i,
-          error = conditionMessage(e)
-        )
-      }
-    )
-  },
-  mc.cores = ncores,
-  mc.preschedule = FALSE
-)
-boot.result <- do.call(rbind, boot.result)
-boot.result
 
-# PerturbR ----------------------------------------------------------------
-perturbR_eval <- function(DT.list, ss, R2true, nchain) {
+
+cat("\nRunning bootstrap CI...\n")
+
+boot.result <- BOOT_eval(
+  DT.list = DT.list,
+  R2true = param.m$R2true[1],
+  BOOT.ITER = BOOT.ITER,
+  ncores = ncores
+)
+
+print(boot.result)
+
+
+# PerturbR CI -------------------------------------------------------------
+
+perturbR_eval <- function(DT.list, ss, R2true, nchain, ncores) {
   
-  perturbR.ci <- lapply(DT.list, function(DT) {
-    theta <- cor(DT)
-    thetacloud <- make_mcmc_fast(S = theta, asy.n = ss, NCHAIN = nchain, alpha = 0.05)
-    empR2dist <- vapply(seq_len(nchain), function(i) computeRsq(thetacloud[,,i]),numeric(1))
-    quantile(empR2dist, c(0, 1))
-  })
+  cores <- min(ncores, length(DT.list))
+  
+  perturbR.ci <- parallel::mclapply(
+    DT.list,
+    function(DT) {
+      
+      theta <- cor(DT)
+      
+      thetacloud <- make_mcmc_fast(
+        S = theta,
+        asy.n = ss,
+        NCHAIN = nchain,
+        alpha = 0.05
+      )
+      
+      empR2dist <- vapply(
+        seq_len(nchain),
+        function(i) computeRsq(thetacloud[, , i]),
+        numeric(1)
+      )
+      
+      range(empR2dist)
+    },
+    mc.cores = cores,
+    mc.preschedule = FALSE,
+    mc.set.seed = TRUE
+  )
   
   perturbR.ci <- do.call(cbind, perturbR.ci)
   
-  c(
-    coverage.perturbR = mean(R2true >= perturbR.ci[1, ] & R2true <= perturbR.ci[2, ]),
+  return(c(
+    coverage.perturbR = mean(R2true >= perturbR.ci[1, ] &
+                               R2true <= perturbR.ci[2, ]),
     width.perturbR = mean(perturbR.ci[2, ] - perturbR.ci[1, ])
-  )
+  ))
 }
-perturbR.result <- parallel::mclapply(
-  seq_len(nrow(param.m)),
-  function(i) {
-    
-    tryCatch(
-      perturbR_eval(
-        DT.list = param.m$DT.list[[i]],
-        ss = param.m$ss[i],
-        R2true = param.m$R2true[i],
-        nchain = nchain
-      ),
-      error = function(e) {
-        list(
-          scenarioID = param.m$scenarioID[i],
-          row = i,
-          error = conditionMessage(e)
-        )
-      }
-    )
-    
-  },
-  mc.cores = ncores,
-  mc.preschedule = FALSE
+
+
+cat("\nRunning PerturbR CI...\n")
+
+perturbR.result <- perturbR_eval(
+  DT.list = DT.list,
+  ss = param.m$ss[1],
+  R2true = param.m$R2true[1],
+  nchain = nchain,
+  ncores = ncores
 )
-perturbR.result <- do.call(rbind, perturbR.result)
+
+print(perturbR.result)
 
 
+# Assemble results --------------------------------------------------------
 
-# Assemble Results --------------------------------------------------------
+out1 <- copy(
+  param.m[, .(scenarioID, R2true, phi, ss, p, beta, beta_value)]
+)
 
-out1<- copy(param.m[,.(scenarioID, R2true, phi, ss, p, beta_value)])
-out1[,`:=`(
-  coverage.fl = as.vector(sapply(fl.result, `[`, "coverage.fl")),
-  width.fl    = as.vector(sapply(fl.result, `[`, "width.fl")),
-  coverage.boot = boot.result[, "coverage.boot"],
-  width.boot    = boot.result[, "width.boot"],
-  coverage.perturbR = perturbR.result[, "coverage.perturbR"],
-  width.perturbR    = perturbR.result[, "width.perturbR"]
+out1[, `:=`(
+  coverage.fl = unname(fl.result["coverage.fl"]),
+  width.fl = unname(fl.result["width.fl"]),
+  coverage.boot = unname(boot.result["coverage.boot"]),
+  width.boot = unname(boot.result["width.boot"]),
+  coverage.perturbR = unname(perturbR.result["coverage.perturbR"]),
+  width.perturbR = unname(perturbR.result["width.perturbR"])
 )]
-out1
 
-fout <- paste0("UseCase/msi/primary_out1.rds")
+print(out1)
+
+
+# Save scenario-specific output ------------------------------------------
+
+dir.create("UseCase/msi/results", recursive = TRUE, showWarnings = FALSE)
+
+fout <- sprintf(
+  "UseCase/msi/results/primary_scenario_%04d.rds",
+  task_id
+)
+
 saveRDS(out1, file = fout)
+
+cat("\nSaved:", fout, "\n")
+cat("Scenario", task_id, "complete.\n")
