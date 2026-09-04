@@ -22,8 +22,24 @@
     Rsq = t(Rxy) %*% solve(Rxx) %*% Rxy
     return(Rsq)
   }
+  est.beta<- function(M){
+    p <- ncol(M)-1
+    Mxx<- M[2:(p+1), 2:(p+1)]
+    Mxy<- M[1,2:(p+1)]
+    beta<- solve(Mxx) %*% Mxy
+    return(c(beta))
+  }
+  computeRsq.test<- function(Mtest, beta.train){
+    # beta.train is a row vector
+    
+    p <- ncol(Mtest)-1
+    Mxx<- Mtest[2:(p+1), 2:(p+1)]
+    Mxy<- Mtest[1,2:(p+1)]
+    
+    (2*beta.train) %*% Mxy - (beta.train %*% Mxx %*% matrix(beta.train, ncol=1))
+  }
   
-  simdriver<- function(Rxx, beta, k=0.85, ss=100, nchain = 1000, alpha = 0.05){
+  simdriver<- function(Rxx, beta, k=0.85, ss=100, nchain = 1000, alpha = 0.05, adaptive = adaptive, acceptance.target = acceptance.target){
     
     p = ncol(Rxx)
     
@@ -48,23 +64,45 @@
     khat<- computeRsq(Rhat)
     
     # Step 9: Generate perturbation cloud
-    RCHAIN <- make_mcmc(S= Rhat, asy.n= ss, NCHAIN = nchain, alpha = alpha)
+    RCHAIN <- make_mcmc(S= Rhat, asy.n= ss, NCHAIN = nchain, alpha = alpha, adaptive= adaptive, acceptance.target = acceptance.target)
     
     # Step 10: map RCHAIN to RSQ.hat.chain
     khat.chain <- sapply(1:nchain, function(i){
       computeRsq(RCHAIN[,,i])
     })
     
-    khat.boot <- sapply(1:nchain, function(i){
+    RBOOT <- array(NA_real_, dim = c(p+1, p+1, nchain))
+    for(i in 1:nchain){
       boot.id <-  sample(ss, ss, replace=TRUE)
-      cor.boot<- cor(dt[boot.id,])
-      computeRsq(cor.boot)
+      RBOOT[,,i]<- cor(dt[boot.id,])
+    }
+    khat.boot <- sapply(1:nchain, function(i){
+      computeRsq(RBOOT[,,i])
+    })
+    
+    ### For OOS R-square
+    train.id<- sample(ss, round(ss*0.7,0))
+    test.id <- c(1:ss)[!(c(1:ss) %in% train.id)]
+    Rhat.train <- cor(dt[train.id,])
+    Rhat.test <- cor(dt[-train.id,])
+    Rhat.train.CHAIN <- make_mcmc(S= Rhat.train, asy.n= length(train.id), NCHAIN = nchain)
+    Rsq.train.mcmc <- sapply(1:nchain, function(i){
+      computeRsq(Rhat.train.CHAIN[,,i])
+    })
+    Rsq.test.mcmc<- sapply(1:nchain, function(i){
+      beta.i<- est.beta(Rhat.train.CHAIN[,,i])
+      computeRsq.test(Mtest = Rhat.test, beta.i)  
     })
     
     return(list(
+      Rhat = Rhat,
+      mcmc = RCHAIN,
+      boot = RBOOT,
       khat.point = khat,
       khat.chain = khat.chain,
-      khat.boot = khat.boot
+      khat.boot = khat.boot,
+      Rsq.train.mcmc = Rsq.train.mcmc,
+      Rsq.test.mcmc = Rsq.test.mcmc
     ))
   }
   

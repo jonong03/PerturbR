@@ -148,19 +148,19 @@ source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projec
 
 
 # Step 0: Specify parameters
-p<- 5
-Rsq <- 0.85
-ss <- 10000
-nchain = 20000
+p<- 2
+Rsq <- 0.6
+ss <- 30
+nchain = 10000
 
 
 # Step 1: construct an AR1 Rxx corr structure 
-Rxx<- gen_AR1(p=p, rho = 0.8)
+Rxx<- gen_AR1(p=p, rho = 0.6)
 Rxx
 kappa(Rxx)  # should be fine as long as rho is not extremely large. Also set rho to large value so we can also study performance at the boundary 
 
 # Step 2: Specify beta according to the signal scenario
-beta <- rep(0.6, p)
+beta <- c(-0.6, 0.6)
 beta <- matrix(beta, nrow =p, ncol= 1)
 
 # Step 3: Compute S
@@ -176,11 +176,33 @@ X <- rmvnorm(n = ss, mean = rep(0,p), sigma = Rxx)
 eps <- rnorm(n=ss, mean = 0, sd = sqrt(sigma2))
 Y <- X %*% (beta) + eps
 
+train.id<- sample(ss, round(ss*0.7,0))
+test.id <- c(1:ss)[!(c(1:ss) %in% train.id)]
+
+
 
 # Step 7: estimate sample cor Rhat
-Rhat = cor(cbind(Y, X))
+DT = cbind(Y,X)
+Rhat = cor(DT)
 Rxy = matrix(cor(Y, X), ncol = 1)
 Rhat
+
+Rhat.train <- cor(DT[train.id,])
+Rhat.test <- cor(DT[test.id,])
+
+
+##### Population R
+{
+  num = (t(beta) %*% Rxx)
+  denom = sqrt( (t(beta) %*% Rxx %*% beta) + sigma2 )
+  r_yx = as.vector(num)/ c(denom)
+  Rpop = diag(p+1)
+  Rpop[1,1] <- 1  #Ryy
+  Rpop[2:(p+1), 2:(p+1)] <- Rxx
+  Rpop[1,2:(p+1)] <- r_yx
+  Rpop[2:(p+1), 1] <- r_yx
+  Rpop
+}
 
 # Step 8: map cor R to Rsq
 computeRsq(Rhat)
@@ -188,10 +210,10 @@ computeRsq(Rhat)
 # Step 9: Generate perturbation cloud
 
 RCHAIN <- make_mcmc(S= Rhat, asy.n= ss, NCHAIN = nchain)
+Rtrain.CHAIN <- make_mcmc(S= Rhat.train, asy.n= length(train.id), NCHAIN = nchain)
 RCHAIN %>% dim
 
 # Step 9B: Bootstrap based correlation (from step 6)
-nchain
 dt <- cbind(Y, X)
 
 boot.id <-  sample(ss, ss, replace=TRUE)
@@ -207,6 +229,9 @@ cor.boot <- sapply(1:nchain, function(i){
 summary( cor.boot) %>% round(.,3)
 hist(cor.boot)
 quantile(cor.boot, c(0.025, 0.975))
+
+
+
 # Step 10: map RCHAIN to RSQ.hat.chain
 Rsq.hat.chain <- sapply(1:nchain, function(i){
   computeRsq(RCHAIN[,,i])
@@ -216,6 +241,34 @@ summary(Rsq.hat.chain)
 range(Rsq.hat.chain) %>% diff
 
 
+est.beta<- function(M){
+  p <- ncol(M)-1
+  Mxx<- M[2:(p+1), 2:(p+1)]
+  Mxy<- M[1,2:(p+1)]
+  beta<- solve(Mxx) %*% Mxy
+  return(c(beta))
+}
+est.beta(Rhat.train)
+
+computeRsq.test<- function(Mtest, beta.train){
+  # beta.train is a row vector
+
+  p <- ncol(Mtest)-1
+  Mxx<- Mtest[2:(p+1), 2:(p+1)]
+  Mxy<- Mtest[1,2:(p+1)]
+  
+  (2*beta.train) %*% Mxy - (beta.train %*% Mxx %*% matrix(beta.train, ncol=1))
+}
+
+Rsq.test.mcmc<- sapply(1:nchain, function(i){
+  beta.i<- est.beta(Rtrain.CHAIN[,,i])
+  computeRsq.test(Mtest = Rhat.test, beta.i)  
+})
+
+which.min(Rsq.test.mcmc)
+summary(Rsq.test.mcmc)
+hist(Rsq.test.mcmc)
+Rtrain.CHAIN[,,i]
 
 # Ensemble Simulation Driver
 # Input: population correlation matrix, beta vector, true R squared, sample size ss

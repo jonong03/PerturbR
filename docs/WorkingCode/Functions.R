@@ -53,10 +53,6 @@ calc_psi <- function(R, n = 1) {
   
   return(psi/n)
 }
-
-
-
-
 wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FALSE) {
   # Rpop     : Target (true) correlation matrix, this will be treated as the center and used to compute variance
   # Rsample  : Estimated correlation matrix
@@ -109,7 +105,7 @@ wald.test <- function(Rpop, Rsample, alpha = 0.05, asy.n = 100000, fisherz = FAL
   
   Psi0 <- Psi* asy.n   # covariance when sample size = 1, use this to study eigenstructure
   
-  if(qr(Psi)$rank != ps) { return(c(T=NA, df=NA, cricval=NA, pval=NA, reject= NA)) }
+  if(qr(Psi0)$rank != ps) { return(c(T=NA, df=NA, cricval=NA, pval=NA, reject= NA)) }
   
   ## --- Mahalanobis distance ---
   distance = mahalanobis(x= sample_vec,center = center_vec,cov = Psi)
@@ -404,19 +400,20 @@ make_mcmc<- function(S, asy.n, NCHAIN=1000, init= S, alpha=0.05,
     partB<- dmvnorm(x= rs, mean= rcurrent, sigma= Psi_Rcurrent, log=T)
     logMH = partA - partB 
     
-    partC<- wald.test(Rpop=Rs, Rsample= S, alpha= alpha, asy.n= asy.n)  # Rstar is at the center
-    IR   <- partC$pval > alpha
-    
+    partC<- wald.test(Rpop=Rs, Rsample= S, alpha= alpha, asy.n= asy.n)  # Rstar is at the center :: is Rs a possible pop generating S?
+    IR   <- (partC[4] > alpha)   # old criteria, not handling NA. NA refers to Psi is non full rank
+
     # Step 3: accept or reject
-    if(IR==TRUE && logMH > log(runif(1))){ # accept Rs
-      RCHAIN[,,i]<- Rs
+    accept_proposal <- !is.na(partC[4]) && IR && (logMH > log(runif(1)))
+    if (accept_proposal) {
+      RCHAIN[, , i] <- Rs
       accept <- accept + 1
     } else {
-      RCHAIN[,,i]<- Rcurrent
+      RCHAIN[, , i] <- Rcurrent
     }
     
     a_rate = accept/i
-    cat("Acceptance Rate: ", round(a_rate,3),"\n")
+    #cat("Acceptance Rate: ", round(a_rate,3),"\n")
     
     if(adaptive==TRUE){
       # update scale parameter every M steps
@@ -435,4 +432,182 @@ make_mcmc<- function(S, asy.n, NCHAIN=1000, init= S, alpha=0.05,
   attr(RCHAIN, "scale_trace") <- trace_scale
   
   return(RCHAIN)
+}
+make_mcmc_fast <- function(
+    S, asy.n, NCHAIN = 1000, init = S, alpha = 0.05,
+    scale.init = 1, adaptive = TRUE, M = 100,
+    acceptance.target = 0.44, seed = NULL,
+    tol = 1e-5, max.proposal = 100) {
+  
+  p  <- ncol(S)
+  ps <- p * (p - 1) / 2
+  
+  lt <- lower.tri(S)
+  ut <- upper.tri(S)
+  
+  if (!is.null(seed))
+    set.seed(seed)
+  
+  ## quantities that never change
+  Svec <- S[lt]
+  crit <- qchisq(1 - alpha, df = ps)
+  
+  ## current state
+  Rcurrent <- init
+  rcurrent <- Rcurrent[lt]
+  Psi_current <- calc_psi_cpp(Rcurrent, n = asy.n)
+  
+  ## eigendecomposition used for proposal generation
+  eig_current <- eigen(Psi_current, symmetric = TRUE)
+  
+  ## output
+  RCHAIN <- array(NA_real_, dim = c(p, p, NCHAIN))
+  RCHAIN[, , 1] <- Rcurrent
+  
+  trace_scale <- numeric(NCHAIN)
+  trace_scale[1] <- scale.init
+  
+  scale_factor <- scale.init
+  accept <- 0L
+  
+  for (i in 2:NCHAIN) {
+    
+    ## --------------------------------------------------
+    ## Step 1: generate proposal Rs
+    ## --------------------------------------------------
+    
+    eigval_scaled <- scale_factor * eig_current$values
+    
+    if (any(eigval_scaled < -tol))
+      stop("Proposal covariance is not positive semidefinite.")
+    
+    A <- eig_current$vectors %*%
+      diag(sqrt(pmax(eigval_scaled, 0)), nrow = ps)
+    
+    proposal_found <- FALSE
+    
+    for (j in seq_len(max.proposal)) {
+      
+      rs <- drop(rcurrent + A %*% rnorm(ps))
+      
+      Rs <- diag(p)
+      Rs[lt] <- rs
+      Rs[ut] <- t(Rs)[ut]
+      
+      evals <- eigen(
+        Rs,
+        symmetric = TRUE,
+        only.values = TRUE
+      )$values
+      
+      if (all(evals > tol)) {
+        proposal_found <- TRUE
+        break
+      }
+    }
+    
+    if (!proposal_found) {
+      stop("Could not generate a positive-definite proposal.")
+    }
+    
+    ## --------------------------------------------------
+    ## Step 2: calculate Psi for proposal ONCE
+    ## --------------------------------------------------
+    
+    Psi_Rs <- calc_psi_cpp(Rs, n = asy.n)
+    
+    ## detailed-balance ratio -- unchanged from your version
+    partA <- mvtnorm::dmvnorm(
+      rcurrent,
+      mean = rs,
+      sigma = Psi_Rs,
+      log = TRUE
+    )
+    
+    partB <- mvtnorm::dmvnorm(
+      rs,
+      mean = rcurrent,
+      sigma = Psi_current,
+      log = TRUE
+    )
+    
+    logMH <- partA - partB
+    
+    ## --------------------------------------------------
+    ## Step 3: Wald-region membership
+    ## --------------------------------------------------
+    
+    ## equivalent to the rank check in wald.test()
+    full_rank <- qr(Psi_Rs * asy.n)$rank == ps
+    
+    if (full_rank) {
+      
+      distance <- mahalanobis(
+        x = Svec,
+        center = rs,
+        cov = Psi_Rs
+      )
+      
+      ## p-value > alpha  <=>  distance < chi-square cutoff
+      IR <- distance < crit
+      
+    } else {
+      
+      IR <- FALSE
+    }
+    
+    ## --------------------------------------------------
+    ## Step 4: accept/reject
+    ## --------------------------------------------------
+    
+    accept_proposal <-
+      IR &&
+      !is.na(logMH) &&
+      logMH > log(runif(1))
+    
+    if (accept_proposal) {
+      
+      Rcurrent <- Rs
+      rcurrent <- rs
+      
+      ## Important: reuse Psi_Rs
+      Psi_current <- Psi_Rs
+      
+      ## only recompute eigen decomposition when state changes
+      eig_current <- eigen(
+        Psi_current,
+        symmetric = TRUE
+      )
+      
+      accept <- accept + 1L
+    }
+    
+    RCHAIN[, , i] <- Rcurrent
+    
+    ## number of proposals so far = i - 1
+    a_rate <- accept / (i - 1)
+    
+    ## --------------------------------------------------
+    ## adaptation
+    ## --------------------------------------------------
+    
+    if (adaptive && i %% M == 0) {
+      
+      bounded_rate <- min(
+        max(a_rate, 0.1),
+        0.75
+      )
+      
+      scale_factor <-
+        scale_factor *
+        bounded_rate / acceptance.target
+    }
+    
+    trace_scale[i] <- scale_factor
+  }
+  
+  attr(RCHAIN, "scale_trace") <- trace_scale
+  attr(RCHAIN, "acceptance_rate") <- accept / (NCHAIN - 1)
+  
+  RCHAIN
 }

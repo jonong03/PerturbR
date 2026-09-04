@@ -1,0 +1,13 @@
+name: UseCase_CorPerturbationAndRsquare
+title: UseCase_CorPerturbationAndRsquare
+username: gokusun327
+account: gokusun327
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 17481683
+bundleId: 12104751
+url: https://gokusun327.shinyapps.io/UseCase_CorPerturbationAndRsquare/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: msi/installpack.R|msi/logs/Untitled.R|msi/param_setup.R|msi/run_one_param.R|msi/sim_outputs/blank|usecase_functions.R|UseCase3_Rsquared_old.Rmd|UseCase3_Rsquared_working.R|UseCase3_Rsquared.pdf|UseCase3_Rsquared.Rmd|Archive
