@@ -1,9 +1,13 @@
 # 1- Truth specification --------------------------------------------------
 rm(list=ls())
 
-pacman::p_load(xtable, future.apply, data.table, rethinking, dplyr, reticulate, mvtnorm)
-source("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR/docs/WorkingCode/Functions.R", local = TRUE)
-Rcpp::sourceCpp("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR/docs/WorkingCode/calc_psi.cpp")
+pacman::p_load(xtable, future.apply, data.table, rethinking, dplyr, reticulate, mvtnorm, Rcpp)
+source("https://raw.githubusercontent.com/jonong03/PerturbR/main/docs/WorkingCode/Functions.R")
+cpp_url <- "https://raw.githubusercontent.com/jonong03/PerturbR/main/docs/WorkingCode/calc_psi.cpp"
+tmp <- tempfile(fileext = ".cpp")
+download.file(cpp_url, tmp)
+Rcpp::sourceCpp(tmp)
+
 
 #use_python("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/1- Projects/PerturbR-CDA/.venv/bin/python", required = TRUE)
 #py_config() 
@@ -87,13 +91,13 @@ Rcpp::sourceCpp("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/
 {
   gc()
   R2true <- c(0.5)
-  phi <- c(0.2, 0.5, 0.8)
+  phi <- c(0, 0.2, 0.5, 0.8)
   ss <- c(1000, 3000, 5000)
   p <- c(11, 14)
   
   beta.list <- c(
-    #"function(p) rep(0.6, p)",
-    #"function(p) rep(0.2, p)",
+    "function(p) rep(0.6, p)",
+    "function(p) rep(0.2, p)",
     "function(p) rep(c(-0.4, 0.4), length= p)"
   )
   
@@ -106,7 +110,7 @@ Rcpp::sourceCpp("/Users/jonong/Library/CloudStorage/OneDrive-Personal/Documents/
     param.m$beta,
     param.m$p
   )
-  param.m[, scenarioID := .I]
+  #param.m[, scenarioID := .I]
   #param.m <- param.m[rep(seq_len(nrow(param.m)), each = 3), ]
   #param.m[, method := rep(c("analytical", "bootstrap", "perturbR"), length.out = .N)]
 }

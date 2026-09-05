@@ -9,6 +9,7 @@
 library(data.table)
 library(mvtnorm)
 library(Rcpp)
+library(MBESS)
 
 source("docs/WorkingCode/Functions.R")
 Rcpp::sourceCpp("docs/WorkingCode/calc_psi.cpp")
@@ -312,16 +313,24 @@ out1[, `:=`(
 print(out1)
 
 
-# Save scenario-specific output ------------------------------------------
+# Save results ------------------------------------------------------------
 
-dir.create("UseCase/msi/results", recursive = TRUE, showWarnings = FALSE)
+job_id <- Sys.getenv("SLURM_ARRAY_JOB_ID")
 
-fout <- sprintf(
-  "UseCase/msi/results/primary_scenario_%04d.rds",
-  task_id
+job_dir <- file.path(
+  "UseCase/msi/results",
+  paste0("job_", job_id)
+)
+
+dir.create(job_dir, recursive = TRUE, showWarnings = FALSE)
+
+fout <- file.path(
+  job_dir,
+  sprintf("primary_scenario_%04d.rds", task_id)
 )
 
 saveRDS(out1, file = fout)
 
-cat("\nSaved:", fout, "\n")
-cat("Scenario", task_id, "complete.\n")
+cat("\nJob ID:", job_id, "\n")
+cat("Scenario:", task_id, "\n")
+cat("Saved:", fout, "\n")
