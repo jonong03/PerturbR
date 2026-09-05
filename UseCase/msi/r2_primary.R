@@ -169,15 +169,23 @@ FL_eval <- function(DT.list, p, ss, R2true) {
     function(r2) MBESS::ci.R2(R2 = r2, K = p, N = ss)
   )
   
-  lb <- vapply(fl.ci, function(x) x[1], numeric(1))
-  ub <- vapply(fl.ci, function(x) x[3], numeric(1))
+  lb <- vapply(
+    fl.ci,
+    function(x) x[["Lower.Conf.Limit.R2"]],
+    numeric(1)
+  )
+  
+  ub <- vapply(
+    fl.ci,
+    function(x) x[["Upper.Conf.Limit.R2"]],
+    numeric(1)
+  )
   
   return(c(
     coverage.fl = mean(R2true >= lb & R2true <= ub),
     width.fl = mean(ub - lb)
   ))
 }
-
 
 cat("\nRunning analytical CI...\n")
 
