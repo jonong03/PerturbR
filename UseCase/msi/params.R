@@ -7,7 +7,7 @@ nchain <- 3000    # PerturbR samples per Monte Carlo replicate
 R2true <- c(0.5)
 phi <- c(0, 0.2, 0.5, 0.8)
 ss <- c(100, 300, 500, 1000, 3000, 5000)
-p <- c()
+p <- c(11, 14)
 
 beta.list <- c(
   "function(p) rep(0.6, p)",
