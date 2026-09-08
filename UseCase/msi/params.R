@@ -5,12 +5,12 @@ BOOT.ITER <- 300  # Bootstrap samples per Monte Carlo replicate
 nchain <- 3000    # PerturbR samples per Monte Carlo replicate
 
 R2true <- c(0.5)
-phi <- c(0, 0.2, 0.5, 0.8)
+phi <- c(0)
 ss <- c(300, 500, 1000, 3000, 5000)
-p <- c(11, 14)
+p <- c(11)
 
 beta.list <- c(
-  "function(p) rep(0.6, p)",
+  #"function(p) rep(0.6, p)",
   "function(p) rep(0.2, p)"
   #"function(p) rep(c(-0.4, 0.4), length = p)"
 )
